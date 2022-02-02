@@ -72,6 +72,18 @@ Hooks.once('init', () => {
     RollTracker.initialize()
 })
 
+Handlebars.registerHelper('isOne', function (value) {
+// Just a helper handlebars function so for our "Mode" line in the FormApp, if there is exactly 1
+// instance of a mode, the text will read "instance" as opposed to "instances"
+    return value === 1;
+});
+
+// Handlebars.registerHelper('isMultimodal', function (value) {
+// // Just a helper handlebars function so for our "Mode" line in the FormApp, if there is more than 1
+// // mode, the text will read ".... instances *each*" as opposed to "... instances"
+//         RollTracker.log(false, value.length)
+//         return value.length > 1;
+//     });
 class RollTracker { 
 // Store basic module info
     static ID = 'roll-tracker'
@@ -119,7 +131,7 @@ class RollTrackerData {
             updatedRolls = [...oldNumbers]
             newNumbers.forEach(e => {
                 updatedRolls.unshift(e)
-                updatedRolls = RollTrackerData.sortRolls(updatedRolls)
+                updatedRolls = this.sortRolls(updatedRolls)
             })
         } else {
             updatedRolls = newNumbers
@@ -129,7 +141,8 @@ class RollTrackerData {
 
     static clearTrackedRolls(userId) { 
     // Delete all stored rolls for a specified user ID
-        return game.users.get(userId)?.unsetFlag(RollTracker.ID, RollTracker.FLAGS.ROLLS), game.users.get(userId)?.unsetFlag(RollTracker.ID, RollTracker.FLAGS.EXPORT)
+        return game.users.get(userId)?.unsetFlag(RollTracker.ID, RollTracker.FLAGS.ROLLS),
+        game.users.get(userId)?.unsetFlag(RollTracker.ID, RollTracker.FLAGS.EXPORT)
     }
 
     static sortRolls(rolls) {
@@ -147,9 +160,9 @@ class RollTrackerData {
 
     static printTrackedRolls(userId) { 
     // Package for data access via the FormApplication
-        const username = RollTrackerData.getUserRolls(userId).user.name
-        const thisUserId = RollTrackerData.getUserRolls(userId).user.id
-        const printRolls = RollTrackerData.getUserRolls(userId).numbers
+        const username = this.getUserRolls(userId).user.name
+        const thisUserId = this.getUserRolls(userId).user.id
+        const printRolls = this.getUserRolls(userId).numbers
         let stats = {}
         if (!printRolls) {
             stats.mean = 0
@@ -159,7 +172,7 @@ class RollTrackerData {
             stats.nat1s = 0,
             stats.nat20s = 0
         } else {
-            stats = RollTrackerData.calculate(printRolls)
+            stats = this.calculate(printRolls)
         }
         return { username, thisUserId, stats }
     }
@@ -186,7 +199,7 @@ class RollTrackerData {
                 modeObj[e]++
             }
         })
-        RollTrackerData.prepareExportData(modeObj)
+        this.prepareExportData(modeObj)
         let comparator = 0
         let mode = []
         for (let rollNumber in modeObj) {
@@ -198,6 +211,7 @@ class RollTrackerData {
                 mode.push(rollNumber)
             }
         }
+        const modeString = mode.join(', ')
 
     // How many Nat1s or Nat20s do we have?
         const nat1s = modeObj[1] || 0
@@ -206,7 +220,7 @@ class RollTrackerData {
         return {
             mean,
             median,
-            mode,
+            mode: modeString,
             comparator,
             nat1s,
             nat20s,
