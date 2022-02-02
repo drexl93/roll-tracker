@@ -24,6 +24,6 @@
         }
     ],
     "url": "https://github.com/drexl93/roll-tracker",
-    "manifest": "https://raw.githubusercontent.com/drexl93/roll-tracker/main/module.json",
-    "download": "https://github.com/drexl93/roll-tracker/releases/download/v1.0.0/roll-tracker-v1.0.0.zip"
+    "manifest": "https://github.com/drexl93/roll-tracker/raw/main/module.json",
+    "download": "https://github.com/drexl93/roll-tracker/raw/main/roll-tracker.zip"
 }
