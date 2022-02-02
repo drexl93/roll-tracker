@@ -2,6 +2,14 @@
     "name": "roll-tracker",
     "title": "Roll Tracker",
     "description": "A simple module which tracks the d20 rolls made and logs them by each user.",
+    "authors": [
+        {
+            "name": "drexl93"
+        }
+    ],
+    "version": "1.0.0",
+    "minimumCoreVersion": "9.0.0",
+    "compatibleCoreVersion": "9.0.0",
     "scripts": [
         "scripts/roll-tracker.js"
     ],
@@ -15,11 +23,7 @@
             "path": "languages/en.json"
         }
     ],
-    "authors": [
-        {
-            "name": "Arun"
-        }
-    ],
-    "version": "1",
-    "minimumCoreVersion": "9.0.0"
+    "url": "https://github.com/drexl93/roll-tracker",
+    "manifest": "https://raw.githubusercontent.com/drexl93/roll-tracker/main/module.json",
+    "download": ""
 }
