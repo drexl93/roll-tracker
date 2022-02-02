@@ -6,6 +6,16 @@
  * SIZE OF DICE TO BE TRACKED
  */
 
+/** QUESTIONS:
+ * TYPEDEF? HOW DOES IT WORK?
+ * IS THERE A CONVENTION ABOUT CLASSES, LIKE WHAT STUFF GOES WHERE?
+ * WHAT'S A WRAPPER? WHAT'S A THIN WRAPPER? WHAT'S THE DIFFERENCE BETWEEN 'render' AND '_render'?
+ */
+
+/** SAVE FILE: saveDataToFile(game.user.data.flags["roll-tracker"].rolls, 'string', 'check.txt') 
+ * 
+ */
+
 /**
  * A single d20 roll
  * @typedef {Object} trRoll
@@ -71,7 +81,8 @@ class RollTracker {
     static ID = 'roll-tracker'
 
     static FLAGS = {
-        ROLLS: 'rolls'
+        ROLLS: 'rolls',
+        EXPORT: 'export'
     }
 
     static TEMPLATES = {
@@ -117,13 +128,12 @@ class RollTrackerData {
         } else {
             updatedRolls = newNumbers
         }
-        RollTracker.log(false, updatedRolls)
         return game.users.get(user.id)?.setFlag(RollTracker.ID, RollTracker.FLAGS.ROLLS, updatedRolls)
     }
 
     static clearTrackedRolls(userId) { 
     // Delete all stored rolls for a specified user ID
-        return game.users.get(userId)?.unsetFlag(RollTracker.ID, RollTracker.FLAGS.ROLLS)
+        return game.users.get(userId)?.unsetFlag(RollTracker.ID, RollTracker.FLAGS.ROLLS), game.users.get(userId)?.unsetFlag(RollTracker.ID, RollTracker.FLAGS.EXPORT)
     }
 
     static sortRolls(rolls) {
@@ -180,6 +190,7 @@ class RollTrackerData {
                 modeObj[e]++
             }
         })
+        RollTrackerData.prepareExportData(modeObj)
         let comparator = 0
         let mode = []
         for (let rollNumber in modeObj) {
@@ -204,6 +215,17 @@ class RollTrackerData {
             nat1s,
             nat20s,
         }
+    }
+
+    static prepareExportData(data) {
+    // prepare the roll data for export to an R-friendly text file
+        const keys = Object.keys(data)
+        let fileContent = ``
+        for (let key of keys) {
+            fileContent += `${key},${data[key]}\n`
+        }
+        game.users.get(game.userId)?.setFlag(RollTracker.ID, RollTracker.FLAGS.EXPORT, fileContent)
+        // saveDataToFile(fileContent, 'string', 'export.txt') 
     }
 }
 
@@ -247,4 +269,20 @@ class RollTrackerDialog extends FormApplication {
             }
         }
     }
+
+    get exportData() {
+        return game.users.get(game.userId).getFlag(RollTracker.ID, RollTracker.FLAGS.EXPORT)
+    }
+
+    _getHeaderButtons() {
+        let buttons = super._getHeaderButtons();
+        buttons.splice(0, 0, {
+            class: "roll-tracker-form-export",
+            icon: "fas fa-download",
+            // label: `ROLL-TRACKER.form-button-download`,
+            onclick: ev => saveDataToFile(this.exportData, 'string', 'roll-data.txt')
+        })
+        return buttons
+    }
+
 }

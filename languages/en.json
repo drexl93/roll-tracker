@@ -7,6 +7,7 @@
         "form-label-nat1s": "Nat 1s",
         "form-label-nat20s": "Nat 20s",
         "form-label-lastRoll": "Last Roll",
-        "form-button-clear": "Clear Data"
+        "form-button-clear": "Clear Data",
+        "form-button-download": "Download"
     }
 }
