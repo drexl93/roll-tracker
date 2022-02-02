@@ -1,3 +1,11 @@
+/** TODO: 
+ * SAVE ARRAY TO FILE FOR PROCESSING
+ * SETTINGS - CAN PLAYERS CLEAR THEIR OWN ROLLS? TREAT FORTUNE/MISFORTUNE AS ONLY THE ROLL TAKEN OR BOTH ROLLED?
+ * PRINT COMPARISON CARD OF ALL PLAYERS, HIGHLIGHT BEST/WORST
+ * SEPARATE BY CHARACTER?
+ * SIZE OF DICE TO BE TRACKED
+ */
+
 /**
  * A single d20 roll
  * @typedef {Object} trRoll
@@ -103,7 +111,7 @@ class RollTrackerData {
         if (oldNumbers) { // if there are pre-existing stored rolls, merge the two arrays
             updatedRolls = [...oldNumbers]
             newNumbers.forEach(e => {
-                updatedRolls.push(e)
+                updatedRolls.unshift(e)
                 updatedRolls = RollTrackerData.sortRolls(updatedRolls)
             })
         } else {
@@ -119,12 +127,12 @@ class RollTrackerData {
     }
 
     static sortRolls(rolls) {
-        for (let i = rolls.length-1; i >= 0; i--) {
-            if (rolls[i-1] && (rolls[i] < rolls[i-1])) {
-                let lowerVal = rolls[i]
-                let higherVal = rolls[i-1]
-                rolls.splice(i-1, 1, lowerVal)
-                rolls.splice(i, 1, higherVal)
+        for (let i = 0; i < rolls.length; i++) {
+            if (rolls[i+1] && (rolls[i] > rolls[i+1])) {
+                let higherVal = rolls[i]
+                let lowerVal = rolls[i+1]
+                rolls.splice(i, 1, lowerVal)
+                rolls.splice(i+1, 1, higherVal)
             } else {
                 return rolls
             }
@@ -144,7 +152,6 @@ class RollTrackerData {
             stats.comparator = 0,
             stats.nat1s = 0,
             stats.nat20s = 0
-            stats.lastRoll = `None`
         } else {
             stats = RollTrackerData.calculate(printRolls)
         }
@@ -160,19 +167,7 @@ class RollTrackerData {
         const mean = Math.round(sum / rolls.length)
 
     // Median
-        // rolls = [1, 7, 3, 2, 18, 11, 10]
-        // for (let e = 0; e < rolls.length; e++) {
-        //     for (let i = 0; i < rolls.length; i++) {
-        //         if (rolls[i+1] && (rolls[i] > rolls[i+1])) {
-        //             let lowerVal = rolls[i+1]
-        //             let higherVal = rolls[i]
-        //             rolls.splice(i+1, 1, higherVal)
-        //             rolls.splice(i, 1, lowerVal)
-        //         }
-        //     }
-        // }
-        // console.log(rolls) 
-        
+        // We've already sorted the rolls as they've come in
         const medianPosition = Math.round(rolls.length / 2)
         const median = rolls[medianPosition-1]
 
@@ -201,8 +196,6 @@ class RollTrackerData {
         const nat1s = modeObj[1] || 0
         const nat20s = modeObj[20] || 0
 
-    // Mostly for debugging, what was the last recorded roll?
-        const lastRoll = rolls[rolls.length-1]
         return {
             mean,
             median,
@@ -210,7 +203,6 @@ class RollTrackerData {
             comparator,
             nat1s,
             nat20s,
-            lastRoll
         }
     }
 }
