@@ -1,5 +1,4 @@
 /** TODO: 
- * SAVE ARRAY TO FILE FOR PROCESSING
  * SETTINGS - CAN PLAYERS CLEAR THEIR OWN ROLLS? TREAT FORTUNE/MISFORTUNE AS ONLY THE ROLL TAKEN OR BOTH ROLLED?
  * PRINT COMPARISON CARD OF ALL PLAYERS, HIGHLIGHT BEST/WORST
  * SEPARATE BY CHARACTER?
@@ -10,10 +9,7 @@
  * TYPEDEF? HOW DOES IT WORK?
  * IS THERE A CONVENTION ABOUT CLASSES, LIKE WHAT STUFF GOES WHERE?
  * WHAT'S A WRAPPER? WHAT'S A THIN WRAPPER? WHAT'S THE DIFFERENCE BETWEEN 'render' AND '_render'?
- */
-
-/** SAVE FILE: saveDataToFile(game.user.data.flags["roll-tracker"].rolls, 'string', 'check.txt') 
- * 
+ * IS THERE A BETTER WAY TO TELL A FUNCTION TO WAIT FOR THE OUTCOME BEFORE PROCEEDING (line 262->130)
  */
 
 /**
@@ -280,7 +276,13 @@ class RollTrackerDialog extends FormApplication {
             class: "roll-tracker-form-export",
             icon: "fas fa-download",
             // label: `ROLL-TRACKER.form-button-download`,
-            onclick: ev => saveDataToFile(this.exportData, 'string', 'roll-data.txt')
+            onclick: ev => {
+                if (this.exportData) {
+                    saveDataToFile(this.exportData, 'string', 'roll-data.txt')
+                } else {
+                    return ui.notifications.warn("No roll data to export")
+                }
+            }
         })
         return buttons
     }
