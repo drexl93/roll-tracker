@@ -1,0 +1,25 @@
+{
+    "name": "roll-tracker",
+    "title": "Roll Tracker",
+    "description": "A simple module which tracks the d20 rolls made and logs them by each user.",
+    "scripts": [
+        "scripts/roll-tracker.js"
+    ],
+    "styles": [
+        "styles/roll-tracker.css"
+    ],
+    "languages": [
+        {
+            "lang": "en",
+            "name": "English",
+            "path": "languages/en.json"
+        }
+    ],
+    "authors": [
+        {
+            "name": "Arun"
+        }
+    ],
+    "version": "1",
+    "minimumCoreVersion": "9.0.0"
+}

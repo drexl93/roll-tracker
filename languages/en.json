@@ -1,0 +1,12 @@
+{
+    "ROLL-TRACKER": {
+        "button-title": "Check Rolls",
+        "form-label-mean": "Mean",
+        "form-label-median": "Median",
+        "form-label-mode": "Mode",
+        "form-label-nat1s": "Nat 1s",
+        "form-label-nat20s": "Nat 20s",
+        "form-label-lastRoll": "Last Roll",
+        "form-button-clear": "Clear Data"
+    }
+}
