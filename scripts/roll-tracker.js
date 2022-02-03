@@ -1,26 +1,17 @@
 /** TODO: 
  * SETTINGS - CAN PLAYERS CLEAR THEIR OWN ROLLS? TREAT FORTUNE/MISFORTUNE AS ONLY THE ROLL TAKEN OR BOTH ROLLED?
+ * * HAVE CHECKBOXES FOR WHAT KIND OF ROLLS ARE CONSIDERED - VERY SYSTEM SPECIFIC
  * PRINT COMPARISON CARD OF ALL PLAYERS, HIGHLIGHT BEST/WORST
  * SEPARATE BY CHARACTER?
  * SIZE OF DICE TO BE TRACKED
  */
 
 /** QUESTIONS:
- * TYPEDEF? HOW DOES IT WORK?
- * IS THERE A CONVENTION ABOUT CLASSES, LIKE WHAT STUFF GOES WHERE?
- * WHAT'S A WRAPPER? WHAT'S A THIN WRAPPER? WHAT'S THE DIFFERENCE BETWEEN 'render' AND '_render'?
- * IS THERE A BETTER WAY TO TELL A FUNCTION TO WAIT FOR THE OUTCOME BEFORE PROCEEDING (line 262->130)
+ * HANDLEBAR MULTIMODAL FUNCTION?
  */
 
-/**
- * A single d20 roll
- * @typedef {Object} trRoll
- * @property {string} userId - the user that made the roll
- * @property {number} roll - the actual d20 roll
- */
-
-Hooks.on('createChatMessage', (chatMessage) => {
 // Whenever a chat message is created, check if it is a d20 roll. If so, add it to the tracked array
+Hooks.on('createChatMessage', (chatMessage) => {
     if (chatMessage.isRoll) {
         const d20 = chatMessage._roll.dice?.[0].faces === 20
         if (d20) {
@@ -29,10 +20,12 @@ Hooks.on('createChatMessage', (chatMessage) => {
     }
 })
 
-Hooks.on('renderPlayerList', (playerList, html) => {
 // This adds our icon to the player list
-    if (game.user.isGM) {
-    // This adds our icon to ALL players on the player list
+Hooks.on('renderPlayerList', (playerList, html) => {
+
+    // This adds our icon to ALL players on the player list, if the setting is toggled
+    if (game.user.isGM && game.settings.get(RollTracker.ID, RollTracker.SETTINGS.GM_SEE_PLAYERS)) {
+    
     // tooltip
         const tooltip = game.i18n.localize('ROLL-TRACKER.button-title')
     // create the button where we want it to be
@@ -46,12 +39,11 @@ Hooks.on('renderPlayerList', (playerList, html) => {
             })
         }
     } else {
-    // find the element which has our logged in user's id
+    // find the element which has our logged in user's id */
         const loggedInUser = html.find(`[data-user-id="${game.userId}"]`)
-    // tooltip
+
         const tooltip = game.i18n.localize('ROLL-TRACKER.button-title')
 
-    // create the button where we want it to be
         loggedInUser.append(
             `<button type="button" title='${tooltip}' class="roll-tracker-item-button flex0" id="${game.userId}"><i class="fas fa-dice-d20"></i></button>`
         )
@@ -62,30 +54,32 @@ Hooks.on('renderPlayerList', (playerList, html) => {
 
 })
 
-Hooks.once('devModeReady', ({ registerPackageDebugFlag }) => {
 // Register our module with the Dev Mode module
+Hooks.once('devModeReady', ({ registerPackageDebugFlag }) => {
     registerPackageDebugFlag(RollTracker.ID)
 })
 
-Hooks.once('init', () => {
 // Initialize dialog
+Hooks.once('init', () => {
     RollTracker.initialize()
 })
 
+
+/** Just a helper handlebars function so for our "Mode" line in the FormApp, if there is exactly 1
+    instance of a mode, the text will read "instance" as opposed to "instances" */
 Handlebars.registerHelper('isOne', function (value) {
-// Just a helper handlebars function so for our "Mode" line in the FormApp, if there is exactly 1
-// instance of a mode, the text will read "instance" as opposed to "instances"
     return value === 1;
 });
 
-// Handlebars.registerHelper('isMultimodal', function (value) {
-// // Just a helper handlebars function so for our "Mode" line in the FormApp, if there is more than 1
-// // mode, the text will read ".... instances *each*" as opposed to "... instances"
-//         RollTracker.log(false, value.length)
-//         return value.length > 1;
-//     });
-class RollTracker { 
+/** Just a helper handlebars function so for our "Mode" line in the FormApp, if there is more than 1 
+    mode, the text will read ".... instances *each*" as opposed to "... instances" */
+Handlebars.registerHelper('isMultimodal', function (value) {
+    RollTracker.log(false, value.length)
+    return value.length > 1;
+});
+
 // Store basic module info
+class RollTracker { 
     static ID = 'roll-tracker'
 
     static FLAGS = {
@@ -105,8 +99,22 @@ class RollTracker {
         }
     }
 
+    static SETTINGS = {
+        GM_SEE_PLAYERS: 'gm_see_players'
+    }
+
     static initialize() {
         this.RollTrackerDialog = new RollTrackerDialog()
+
+        game.settings.register(this.ID, this.SETTINGS.GM_SEE_PLAYERS, {
+            name: `ROLL-TRACKER.settings.${this.SETTINGS.GM_SEE_PLAYERS}.Name`,
+            default: true,
+            type: Boolean,
+            scope: 'world',
+            config: true,
+            hint: `ROLL-TRACKER.settings.${this.SETTINGS.GM_SEE_PLAYERS}.Hint`,
+            onChange: () => ui.players.render()
+        })
     }
 }
 
@@ -141,7 +149,7 @@ class RollTrackerData {
 
     static clearTrackedRolls(userId) { 
     // Delete all stored rolls for a specified user ID
-        return game.users.get(userId)?.unsetFlag(RollTracker.ID, RollTracker.FLAGS.ROLLS),
+        return setTimeout(1000, () => (RollTracker.log(false, 'times up'))), game.users.get(userId)?.unsetFlag(RollTracker.ID, RollTracker.FLAGS.ROLLS),
         game.users.get(userId)?.unsetFlag(RollTracker.ID, RollTracker.FLAGS.EXPORT)
     }
 
@@ -235,7 +243,6 @@ class RollTrackerData {
             fileContent += `${key},${data[key]}\n`
         }
         game.users.get(game.userId)?.setFlag(RollTracker.ID, RollTracker.FLAGS.EXPORT, fileContent)
-        // saveDataToFile(fileContent, 'string', 'export.txt') 
     }
 }
 
@@ -273,8 +280,14 @@ class RollTrackerDialog extends FormApplication {
         const userId = clickedElement.parents(`[data-userId]`)?.data().userid
         switch (action) {
             case 'clear': {
-                await RollTrackerData.clearTrackedRolls(userId)
-                this.render();
+                const confirmed = await Dialog.confirm({
+                    title: game.i18n.localize("ROLL-TRACKER.confirms.clear_rolls.title"),
+                    content: game.i18n.localize("ROLL-TRACKER.confirms.clear_rolls.content"),
+                })
+                if (confirmed) {
+                    await RollTrackerData.clearTrackedRolls(userId)
+                    this.render();
+                }
                 break
             }
         }

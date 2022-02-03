@@ -8,6 +8,18 @@
         "form-label-nat20s": "Nat 20s",
         "form-label-lastRoll": "Last Roll",
         "form-button-clear": "Clear Data",
-        "form-button-download": "Download"
+        "form-button-download": "Download",
+        "settings": {
+            "gm_see_players": {
+                "Name" : "GM Sees Player Roll Icons in Playerlist?",
+                "Hint" : "If enabled, the GM will see icons beside all player names that they can use to access that player's roll stats."
+            }
+        },
+        "confirms": {
+            "clear_rolls": {
+                "title": "Clear Rolls?",
+                "content": "Are you sure you want to clear your rolls? This cannot be undone."
+            }
+        }
     }
 }
