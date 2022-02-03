@@ -72,11 +72,10 @@ Handlebars.registerHelper('isOne', function (value) {
 });
 
 /** Just a helper handlebars function so for our "Mode" line in the FormApp, if there is more than 1 
-    mode, the text will read ".... instances *each*" as opposed to "... instances" */
+    mode, the text will read ".... instances *each*" as opposed to "... instances" 
 Handlebars.registerHelper('isMultimodal', function (value) {
-    RollTracker.log(false, value.length)
     return value.length > 1;
-});
+}); */
 
 // Store basic module info
 class RollTracker { 
@@ -149,8 +148,10 @@ class RollTrackerData {
 
     static clearTrackedRolls(userId) { 
     // Delete all stored rolls for a specified user ID
-        return setTimeout(1000, () => (RollTracker.log(false, 'times up'))), game.users.get(userId)?.unsetFlag(RollTracker.ID, RollTracker.FLAGS.ROLLS),
-        game.users.get(userId)?.unsetFlag(RollTracker.ID, RollTracker.FLAGS.EXPORT)
+        return Promise.all([
+            game.users.get(userId)?.unsetFlag(RollTracker.ID, RollTracker.FLAGS.ROLLS), 
+            game.users.get(userId)?.unsetFlag(RollTracker.ID, RollTracker.FLAGS.EXPORT)
+        ])
     }
 
     static sortRolls(rolls) {
