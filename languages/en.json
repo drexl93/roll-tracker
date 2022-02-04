@@ -9,6 +9,7 @@
         "form-label-lastRoll": "Last Roll",
         "form-button-clear": "Clear Data",
         "form-button-download": "Download",
+        "form-button-print": "Print to Chat",
         "settings": {
             "gm_see_players": {
                 "Name" : "See Player Roll Icons?",

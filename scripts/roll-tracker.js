@@ -88,7 +88,8 @@ class RollTracker {
     }
 
     static TEMPLATES = {
-        ROLLTRACK: `modules/${this.ID}/templates/${this.ID}.hbs`
+        ROLLTRACK: `modules/${this.ID}/templates/${this.ID}.hbs`,
+        CHATMSG: `modules/${this.ID}/templates/${this.ID}-chat.hbs`
     }
 
     static log(force, ...args) {
@@ -315,6 +316,9 @@ class RollTrackerDialog extends FormApplication {
                     this.render();
                 }
                 break
+            } case 'print': {
+                const content = await renderTemplate(RollTracker.TEMPLATES.CHATMSG, RollTrackerData.printTrackedRolls(this.object))
+                ChatMessage.create( { content } )
             }
         }
     }
