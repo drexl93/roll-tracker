@@ -82,8 +82,9 @@ class RollTracker {
     static ID = 'roll-tracker'
 
     static FLAGS = {
-        ROLLS: 'rolls',
-        EXPORT: 'export'
+        SORTED: 'sorted',
+        EXPORT: 'export',
+        UNSORTED: 'unsorted'
     }
 
     static TEMPLATES = {
@@ -99,7 +100,8 @@ class RollTracker {
     }
 
     static SETTINGS = {
-        GM_SEE_PLAYERS: 'gm_see_players'
+        GM_SEE_PLAYERS: 'gm_see_players',
+        ROLL_STORAGE: 'roll_storage'
     }
 
     static initialize() {
@@ -114,6 +116,20 @@ class RollTracker {
             hint: `ROLL-TRACKER.settings.${this.SETTINGS.GM_SEE_PLAYERS}.Hint`,
             onChange: () => ui.players.render()
         })
+
+        game.settings.register(this.ID, this.SETTINGS.ROLL_STORAGE, {
+            name: `ROLL-TRACKER.settings.${this.SETTINGS.ROLL_STORAGE}.Name`,
+            default: 50,
+            type: Number,
+            range: {
+                min: 10,
+                max: 500,
+                step: 10
+            },
+            scope: 'world',
+            config: true,
+            hint: `ROLL-TRACKER.settings.${this.SETTINGS.ROLL_STORAGE}.Hint`,
+        })
     }
 }
 
@@ -123,7 +139,8 @@ class RollTrackerData {
     // A simple retrieve method that gets the stored flag on a specified user
          const output = {
             user: game.users.get(userId),    
-            numbers: game.users.get(userId)?.getFlag(RollTracker.ID, RollTracker.FLAGS.ROLLS)
+            sorted: game.users.get(userId)?.getFlag(RollTracker.ID, RollTracker.FLAGS.SORTED),
+            unsorted: game.users.get(userId)?.getFlag(RollTracker.ID, RollTracker.FLAGS.UNSORTED)
         } 
         return output
     }
@@ -133,45 +150,52 @@ class RollTrackerData {
         let updatedRolls = []
     // extract the new rolls from the chat message, concatenate the array with the existing rolls array
         const newNumbers = rollData.dice[0].results.map(result => result.result) // In case there's more than one d20 roll in a single instance as in fortune/misfortune rolls
-        const oldNumbers = this.getUserRolls(user.id)?.numbers
-        if (oldNumbers) { // if there are pre-existing stored rolls, merge the two arrays
-            updatedRolls = [...oldNumbers]
+        let oldSorted = this.getUserRolls(user.id)?.sorted || []
+        let oldUnsorted = this.getUserRolls(user.id)?.unsorted || []
+        const limit = game.settings.get(RollTracker.ID, RollTracker.SETTINGS.ROLL_STORAGE)
+        if (oldUnsorted.length >= limit) {
+            const popped = oldUnsorted.shift()
+            const remove = oldSorted.findIndex((element) => {
+                return element === popped
+            })
+            oldSorted.splice(remove, 1)
+        }
+        if (oldSorted.length) { // if there are pre-existing stored rolls, merge the two arrays
+            updatedRolls = [...oldSorted]
             newNumbers.forEach(e => {
                 updatedRolls.unshift(e)
+                oldUnsorted.push(e)
                 updatedRolls = this.sortRolls(updatedRolls)
             })
         } else {
             updatedRolls = newNumbers
+            oldUnsorted = newNumbers
         }
-        return game.users.get(user.id)?.setFlag(RollTracker.ID, RollTracker.FLAGS.ROLLS, updatedRolls)
+        RollTracker.log(false, `sorted rolls: ${updatedRolls}, unsorted rolls: ${oldUnsorted}`)
+        return Promise.all([
+            game.users.get(user.id)?.setFlag(RollTracker.ID, RollTracker.FLAGS.SORTED, updatedRolls),
+            game.users.get(user.id)?.setFlag(RollTracker.ID, RollTracker.FLAGS.UNSORTED, oldUnsorted)
+        ])
     }
 
     static clearTrackedRolls(userId) { 
     // Delete all stored rolls for a specified user ID
         return Promise.all([
-            game.users.get(userId)?.unsetFlag(RollTracker.ID, RollTracker.FLAGS.ROLLS), 
-            game.users.get(userId)?.unsetFlag(RollTracker.ID, RollTracker.FLAGS.EXPORT)
+            game.users.get(userId)?.unsetFlag(RollTracker.ID, RollTracker.FLAGS.SORTED), 
+            game.users.get(userId)?.unsetFlag(RollTracker.ID, RollTracker.FLAGS.EXPORT),
+            game.users.get(userId)?.unsetFlag(RollTracker.ID, RollTracker.FLAGS.UNSORTED)
         ])
     }
 
     static sortRolls(rolls) {
-        for (let i = 0; i < rolls.length; i++) {
-            if (rolls[i+1] && (rolls[i] > rolls[i+1])) {
-                let higherVal = rolls[i]
-                let lowerVal = rolls[i+1]
-                rolls.splice(i, 1, lowerVal)
-                rolls.splice(i+1, 1, higherVal)
-            } else {
-                return rolls
-            }
-        } 
+        return rolls.sort((a, b) => a - b)
     }
 
     static printTrackedRolls(userId) { 
     // Package for data access via the FormApplication
         const username = this.getUserRolls(userId).user.name
         const thisUserId = this.getUserRolls(userId).user.id
-        const printRolls = this.getUserRolls(userId).numbers
+        const printRolls = this.getUserRolls(userId).sorted
         let stats = {}
         if (!printRolls) {
             stats.mean = 0

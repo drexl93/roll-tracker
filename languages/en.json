@@ -11,8 +11,12 @@
         "form-button-download": "Download",
         "settings": {
             "gm_see_players": {
-                "Name" : "GM Sees Player Roll Icons in Playerlist?",
+                "Name" : "See Player Roll Icons?",
                 "Hint" : "If enabled, the GM will see icons beside all player names that they can use to access that player's roll stats."
+            },
+            "roll_storage": {
+                "Name" : "Max rolls stored",
+                "Hint" : "How many rolls should the system store before older rolls begin to be overwritten?"
             }
         },
         "confirms": {
