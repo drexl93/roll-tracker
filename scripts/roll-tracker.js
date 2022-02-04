@@ -146,21 +146,22 @@ class RollTrackerData {
     }
 
     static createTrackedRoll(user, rollData) {
-    // Make an object for storage, making sure to include the name and ID to be used later
         let updatedRolls = []
-    // extract the new rolls from the chat message, concatenate the array with the existing rolls array
         const newNumbers = rollData.dice[0].results.map(result => result.result) // In case there's more than one d20 roll in a single instance as in fortune/misfortune rolls
         let oldSorted = this.getUserRolls(user.id)?.sorted || []
         let oldUnsorted = this.getUserRolls(user.id)?.unsorted || []
         const limit = game.settings.get(RollTracker.ID, RollTracker.SETTINGS.ROLL_STORAGE)
         if (oldUnsorted.length >= limit) {
-            const popped = oldUnsorted.shift()
-            const remove = oldSorted.findIndex((element) => {
-                return element === popped
-            })
-            oldSorted.splice(remove, 1)
+            const difference = oldUnsorted.length - limit
+            for (let i = 0; i <= difference; i++) {
+                const popped = oldUnsorted.shift()
+                const remove = oldSorted.findIndex((element) => {
+                    return element === popped
+                })
+                oldSorted.splice(remove, 1)
+            }    
         }
-        if (oldSorted.length) { // if there are pre-existing stored rolls, merge the two arrays
+        if (oldSorted.length) {
             updatedRolls = [...oldSorted]
             newNumbers.forEach(e => {
                 updatedRolls.unshift(e)
