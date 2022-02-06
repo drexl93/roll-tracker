@@ -39,7 +39,7 @@ Hooks.on('renderPlayerList', (playerList, html) => {
             })
         }
     } else {
-    // find the element which has our logged in user's id */
+    // find the element which has our logged in user's id
         const loggedInUser = html.find(`[data-user-id="${game.userId}"]`)
 
         const tooltip = game.i18n.localize('ROLL-TRACKER.button-title')
@@ -54,28 +54,29 @@ Hooks.on('renderPlayerList', (playerList, html) => {
 
 })
 
-// Register our module with the Dev Mode module
+// Register our module with the Dev Mode module, for logging purposes
 Hooks.once('devModeReady', ({ registerPackageDebugFlag }) => {
     registerPackageDebugFlag(RollTracker.ID)
 })
 
-// Initialize dialog
+// Initialize dialog and settings on foundry boot up
 Hooks.once('init', () => {
     RollTracker.initialize()
 })
 
 
-/** Just a helper handlebars function so for our "Mode" line in the FormApp, if there is exactly 1
-    instance of a mode, the text will read "instance" as opposed to "instances" */
+// Just a helper handlebars function so for our "Mode" line in the FormApp, if there is exactly 1
+// instance of a mode, the text will read "instance" as opposed to "instances"
 Handlebars.registerHelper('isOne', function (value) {
     return value === 1;
 });
 
-/** Just a helper handlebars function so for our "Mode" line in the FormApp, if there is more than 1 
-    mode, the text will read ".... instances *each*" as opposed to "... instances" 
-Handlebars.registerHelper('isMultimodal', function (value) {
-    return value.length > 1;
-}); */
+/** NOT YET FUNCTIONAL */
+// Just a helper handlebars function so for our "Mode" line in the FormApp, if there is more than 1 
+// mode, the text will read ".... instances *each*" as opposed to "... instances" 
+// Handlebars.registerHelper('isMultimodal', function (value) {
+//     return value.length > 1;
+// });
 
 // Store basic module info
 class RollTracker { 
@@ -92,6 +93,9 @@ class RollTracker {
         CHATMSG: `modules/${this.ID}/templates/${this.ID}-chat.hbs`
     }
 
+    // This logging function ties in with the Developer Mode module. It will log a custom, module namespaced
+    // message in the dev console when RollTracker.log() is called. When Developer Mode is not enabled (as in
+    // most non-dev environments) the log will not show. Prevents logs leaking into full releases
     static log(force, ...args) {
         const shouldLog = force || game.modules.get('_dev-mode')?.api?.getPackageDebugValue(this.ID)
 
@@ -106,8 +110,12 @@ class RollTracker {
     }
 
     static initialize() {
+        // Cache an instance of the dialog that pops up when we click the dice button near a player
+        // name on the playerlist. Its contents are updated at the actual time of clicking
         this.RollTrackerDialog = new RollTrackerDialog()
 
+        // A setting to toggle whether the GM can see the icon allowing them access to player roll
+        // data or not
         game.settings.register(this.ID, this.SETTINGS.GM_SEE_PLAYERS, {
             name: `ROLL-TRACKER.settings.${this.SETTINGS.GM_SEE_PLAYERS}.Name`,
             default: true,
@@ -118,6 +126,7 @@ class RollTracker {
             onChange: () => ui.players.render()
         })
 
+        // A setting to determine how many rolls should be stored at any one time
         game.settings.register(this.ID, this.SETTINGS.ROLL_STORAGE, {
             name: `ROLL-TRACKER.settings.${this.SETTINGS.ROLL_STORAGE}.Name`,
             default: 50,
@@ -135,7 +144,7 @@ class RollTracker {
 }
 
 class RollTrackerData { 
-// Our main data workhorse
+// Our main data workhorse class
     static getUserRolls(userId) {
     // A simple retrieve method that gets the stored flag on a specified user
          const output = {
@@ -150,8 +159,8 @@ class RollTrackerData {
         if (game.userId === user.id) {
         // this check is necessary because (I think) every instance of foundry currently running tries
         // to create and update these rolls. Players, however, do not have permission to edit the data
-        // of other users, so errors are thrown. This way only the foundry instance run by the GM does
-        // the updating
+        // of other users, so errors are thrown. This way the only foundry instance that creates the tracked
+        // roll is the foundry instance of the user actually making the roll
             let updatedRolls = []
             const newNumbers = rollData.dice[0].results.map(result => result.result) // In case there's more than one d20 roll in a single instance as in fortune/misfortune rolls
             let oldSorted = this.getUserRolls(user.id)?.sorted || []
@@ -196,11 +205,12 @@ class RollTrackerData {
     }
 
     static sortRolls(rolls) {
+    // Used to sort the rolls in ascending order for the purposes of median calculation
         return rolls.sort((a, b) => a - b)
     }
 
     static prepTrackedRolls(userId) { 
-    // Package for data access via the FormApplication
+    // Package data for access via the FormApplication
         const username = this.getUserRolls(userId).user.name
         const thisUserId = this.getUserRolls(userId).user.id
         const printRolls = this.getUserRolls(userId).sorted
@@ -219,7 +229,7 @@ class RollTrackerData {
     }
 
     static calculate(rolls) {
-    // Turn the raw data array into usable stats
+    // Turn the raw data array into usable stats:
     // Mean
         const sum = rolls.reduce((firstValue, secondValue) => {
             return firstValue + secondValue
@@ -240,8 +250,14 @@ class RollTrackerData {
                 modeObj[e]++
             }
         })
+
+        // We prepare the export data file at this point because the data is conveniently
+        // ordered
         this.prepareExportData(modeObj)
+
+        // the 'comparator' is the integer showing how many times the mode appears
         let comparator = 0
+
         let mode = []
         for (let rollNumber in modeObj) {
             if (modeObj[rollNumber] > comparator) {
@@ -274,9 +290,16 @@ class RollTrackerData {
         for (let key of keys) {
             fileContent += `${key},${data[key]}\n`
         }
+        // We store the filecontent on a flag on the user so it can be quickly accessed if the user
+        // decides to click the export button on the RollTrackerDialog header
         game.users.get(game.userId)?.setFlag(RollTracker.ID, RollTracker.FLAGS.EXPORT, fileContent)
     }
 
+    /** FUNCTIONAL BUT NOT YET IMPLEMENTED IN UI*/
+    // This function is meant to generate an overall picture across all players of rankings in the
+    // various stats.
+    // In this format it has difficulty with 'ties' - rather than displaying all tied users it only
+    // displays the last one processed
     static async generalComparison() {
         let allStats = {}
         for (let user of game.users) {
@@ -286,7 +309,7 @@ class RollTrackerData {
             }
         }
         // highest/lowest of
-            // mean
+
             const means = await this.statsCompare(allStats, 'mean')
 
             const modes = await this.statsCompare(allStats, 'comparator')
@@ -314,30 +337,10 @@ class RollTrackerData {
                 }
             }
             RollTracker.log(false, finalComparison)
-
-            // let topStat = 0;
-            // for (let user in allStats) {
-            //     if (allStats[`${user}`].mean > topStat) {
-            //         topStat = allStats[`${user}`].mean
-            //         finalComparison.topMean = user
-            //     }
-            // }
-            // let botStat = 100;
-            // for (let user in allStats) {
-            //     if (allStats[`${user}`].mean < botStat) {
-            //         botStat = allStats[`${user}`].mean
-            //         finalComparison.botMean = user
-            //     }
-            // }
-
-
-            // median, 
-            // mode
-            // nat 20s
-            // nat 1s
-
     }
 
+    // A general function to compare incoming 'stats' using a specific data object in the format
+    // generated in the allStats variable of generalComparison()
     static async statsCompare(obj, stat) {
         let topStat = -1;
         let comparison = {}
@@ -380,7 +383,10 @@ class RollTrackerDialog extends FormApplication {
 
     getData() {
         const rollData = RollTrackerData.prepTrackedRolls(this.object)
-        RollTracker.log(false, rollData)
+        // The lines below convert the mode array returned from prepTrackedRolls into a prettier 
+        // string for display purposes. We choose to do the conversion to string here so that
+        // prepTrackedRolls generates raw data which can be more easily read/compared/manipulated
+        // as in generalComparison()
         const modeString = rollData.stats.mode.join(', ')
         rollData.stats.mode = modeString
         return rollData
@@ -389,6 +395,9 @@ class RollTrackerDialog extends FormApplication {
     activateListeners(html) {
         super.activateListeners(html);
 
+        // With the below function, we are specifying that for the _handleButtonClick function, 
+        // the keyword 'this' will refer to the current value of this as used in the bind function
+        // i.e. RollTrackerDialog
         html.on('click', "[data-action]", this._handleButtonClick.bind(this))
     }
 
@@ -418,12 +427,12 @@ class RollTrackerDialog extends FormApplication {
         return game.users.get(game.userId).getFlag(RollTracker.ID, RollTracker.FLAGS.EXPORT)
     }
 
+    // This function gets the header data from FormApplication but modifies it to add our export button
     _getHeaderButtons() {
         let buttons = super._getHeaderButtons();
         buttons.splice(0, 0, {
             class: "roll-tracker-form-export",
             icon: "fas fa-download",
-            // label: `ROLL-TRACKER.form-button-download`,
             onclick: ev => {
                 if (this.exportData) {
                     saveDataToFile(this.exportData, 'string', 'roll-data.txt')

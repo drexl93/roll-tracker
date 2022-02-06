@@ -2,13 +2,13 @@
 <form>
     <div class="roll-tracker-form flexcol" data-userId="{{thisUserId}}">
         <h1 class="roll-tracker-form-heading">{{username}}</h1>
-        <ul class="roll-tracker-form flexcol">
-            <li><span class="roll-tracker-form stat">{{localize "ROLL-TRACKER.chat-message-highest-mean"}}: </span>{{stats.mean}}</li>
-            <li><span class="roll-tracker-form stat">{{localize "ROLL-TRACKER.chat-message-highest-median"}}: </span>{{stats.median}}</li>
-            <li><span class="roll-tracker-form stat">{{localize "ROLL-TRACKER.chat-message-highest-mode"}} ({{stats.comparator}}
+       <ul class="roll-tracker-form flexcol">
+            <li><span class="roll-tracker-form stat">{{localize "ROLL-TRACKER.form-label-mean"}}: </span>{{stats.mean}}</li>
+            <li><span class="roll-tracker-form stat">{{localize "ROLL-TRACKER.form-label-median"}}: </span>{{stats.median}}</li>
+            <li><span class="roll-tracker-form stat">{{localize "ROLL-TRACKER.form-label-mode"}} ({{stats.comparator}}
                 {{#if (isOne stats.comparator)}} instance{{else}} instances{{/if}}): </span>{{stats.mode}}</li>
-            <li><span class="roll-tracker-form stat">{{localize "ROLL-TRACKER.chat-message-highest-nat1s"}}: </span>{{stats.nat1s}}</li>
-            <li><span class="roll-tracker-form stat">{{localize "ROLL-TRACKER.chat-message-highest-nat20s"}}: </span>{{stats.nat20s}}</li>
+            <li><span class="roll-tracker-form stat">{{localize "ROLL-TRACKER.form-label-nat1s"}}: </span>{{stats.nat1s}}</li>
+            <li><span class="roll-tracker-form stat">{{localize "ROLL-TRACKER.form-label-nat20s"}}: </span>{{stats.nat20s}}</li>
         </ul>
     </div>
 </form>
