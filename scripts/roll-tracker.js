@@ -147,37 +147,43 @@ class RollTrackerData {
     }
 
     static createTrackedRoll(user, rollData) {
-        let updatedRolls = []
-        const newNumbers = rollData.dice[0].results.map(result => result.result) // In case there's more than one d20 roll in a single instance as in fortune/misfortune rolls
-        let oldSorted = this.getUserRolls(user.id)?.sorted || []
-        let oldUnsorted = this.getUserRolls(user.id)?.unsorted || []
-        const limit = game.settings.get(RollTracker.ID, RollTracker.SETTINGS.ROLL_STORAGE)
-        if (oldUnsorted.length >= limit) {
-            const difference = oldUnsorted.length - limit
-            for (let i = 0; i <= difference; i++) {
-                const popped = oldUnsorted.shift()
-                const remove = oldSorted.findIndex((element) => {
-                    return element === popped
+        if (game.userId === user.id) {
+        // this check is necessary because (I think) every instance of foundry currently running tries
+        // to create and update these rolls. Players, however, do not have permission to edit the data
+        // of other users, so errors are thrown. This way only the foundry instance run by the GM does
+        // the updating
+            let updatedRolls = []
+            const newNumbers = rollData.dice[0].results.map(result => result.result) // In case there's more than one d20 roll in a single instance as in fortune/misfortune rolls
+            let oldSorted = this.getUserRolls(user.id)?.sorted || []
+            let oldUnsorted = this.getUserRolls(user.id)?.unsorted || []
+            const limit = game.settings.get(RollTracker.ID, RollTracker.SETTINGS.ROLL_STORAGE)
+            if (oldUnsorted.length >= limit) {
+                const difference = oldUnsorted.length - limit
+                for (let i = 0; i <= difference; i++) {
+                    const popped = oldUnsorted.shift()
+                    const remove = oldSorted.findIndex((element) => {
+                        return element === popped
+                    })
+                    oldSorted.splice(remove, 1)
+                }    
+            }
+            if (oldSorted.length) {
+                updatedRolls = [...oldSorted]
+                newNumbers.forEach(e => {
+                    updatedRolls.unshift(e)
+                    oldUnsorted.push(e)
+                    updatedRolls = this.sortRolls(updatedRolls)
                 })
-                oldSorted.splice(remove, 1)
-            }    
+            } else {
+                updatedRolls = newNumbers
+                oldUnsorted = newNumbers
+            }
+            RollTracker.log(false, `sorted rolls: ${updatedRolls}, unsorted rolls: ${oldUnsorted}`)
+            return Promise.all([
+                game.users.get(user.id)?.setFlag(RollTracker.ID, RollTracker.FLAGS.SORTED, updatedRolls),
+                game.users.get(user.id)?.setFlag(RollTracker.ID, RollTracker.FLAGS.UNSORTED, oldUnsorted)
+            ])
         }
-        if (oldSorted.length) {
-            updatedRolls = [...oldSorted]
-            newNumbers.forEach(e => {
-                updatedRolls.unshift(e)
-                oldUnsorted.push(e)
-                updatedRolls = this.sortRolls(updatedRolls)
-            })
-        } else {
-            updatedRolls = newNumbers
-            oldUnsorted = newNumbers
-        }
-        RollTracker.log(false, `sorted rolls: ${updatedRolls}, unsorted rolls: ${oldUnsorted}`)
-        return Promise.all([
-            game.users.get(user.id)?.setFlag(RollTracker.ID, RollTracker.FLAGS.SORTED, updatedRolls),
-            game.users.get(user.id)?.setFlag(RollTracker.ID, RollTracker.FLAGS.UNSORTED, oldUnsorted)
-        ])
     }
 
     static clearTrackedRolls(userId) { 
@@ -193,7 +199,7 @@ class RollTrackerData {
         return rolls.sort((a, b) => a - b)
     }
 
-    static printTrackedRolls(userId) { 
+    static prepTrackedRolls(userId) { 
     // Package for data access via the FormApplication
         const username = this.getUserRolls(userId).user.name
         const thisUserId = this.getUserRolls(userId).user.id
@@ -202,7 +208,7 @@ class RollTrackerData {
         if (!printRolls) {
             stats.mean = 0
             stats.median = 0
-            stats.mode = 0,
+            stats.mode = [0],
             stats.comparator = 0,
             stats.nat1s = 0,
             stats.nat20s = 0
@@ -246,7 +252,6 @@ class RollTrackerData {
                 mode.push(rollNumber)
             }
         }
-        const modeString = mode.join(', ')
 
     // How many Nat1s or Nat20s do we have?
         const nat1s = modeObj[1] || 0
@@ -255,7 +260,7 @@ class RollTrackerData {
         return {
             mean,
             median,
-            mode: modeString,
+            mode,
             comparator,
             nat1s,
             nat20s,
@@ -270,6 +275,88 @@ class RollTrackerData {
             fileContent += `${key},${data[key]}\n`
         }
         game.users.get(game.userId)?.setFlag(RollTracker.ID, RollTracker.FLAGS.EXPORT, fileContent)
+    }
+
+    static async generalComparison() {
+        let allStats = {}
+        for (let user of game.users) {
+            if (game.users.get(user.id)?.getFlag(RollTracker.ID, RollTracker.FLAGS.SORTED)) {
+                allStats[user.id] = this.prepTrackedRolls(user.id).stats
+                // allStats[user.id].mode = [allStats[user.id].mode.at(0), allStats[user.id].mode.at(-1)]
+            }
+        }
+        // highest/lowest of
+            // mean
+            const means = await this.statsCompare(allStats, 'mean')
+
+            const modes = await this.statsCompare(allStats, 'comparator')
+
+            const medians = await this.statsCompare(allStats, 'median')
+
+            const nat1s = await this.statsCompare(allStats, 'nat1s')
+
+            const nat20s = await this.statsCompare(allStats, 'nat20s')
+
+            const finalComparison = {
+                highest: {
+                    mean: {name: game.users.get(`${means.topmean}`)?.name, mean: allStats[`${means.topmean}`].mean},
+                    median: {name: game.users.get(`${medians.topmedian}`)?.name, median: allStats[`${medians.topmedian}`].median},
+                    mode: {name: game.users.get(`${modes.topcomparator}`)?.name, mode: allStats[`${modes.topcomparator}`].mode.join(', '), comparator: allStats[`${modes.topcomparator}`].comparator},
+                    nat1s: {name: game.users.get(`${nat1s.topnat1s}`)?.name, nat1s: allStats[`${nat1s.topnat1s}`].nat1s},
+                    nat20s: {name: game.users.get(`${nat20s.topnat20s}`)?.name, nat20s: allStats[`${nat20s.topnat20s}`].nat20s}
+                },
+                lowest: {
+                    mean: {name: game.users.get(`${means.botmean}`)?.name, mean: allStats[`${means.botmean}`].mean},
+                    median: {name: game.users.get(`${medians.botmedian}`)?.name, median: allStats[`${medians.botmedian}`].median},
+                    mode: {name: game.users.get(`${modes.botcomparator}`)?.name, mode: allStats[`${modes.botcomparator}`].mode.join(', '), comparator: allStats[`${modes.botcomparator}`].comparator},
+                    nat1s: {name: game.users.get(`${nat1s.botnat1s}`)?.name, nat1s: allStats[`${nat1s.botnat1s}`].nat1s},
+                    nat20s: {name: game.users.get(`${nat20s.botnat20s}`)?.name, nat20s: allStats[`${nat20s.botnat20s}`].nat20s}
+                }
+            }
+            RollTracker.log(false, finalComparison)
+
+            // let topStat = 0;
+            // for (let user in allStats) {
+            //     if (allStats[`${user}`].mean > topStat) {
+            //         topStat = allStats[`${user}`].mean
+            //         finalComparison.topMean = user
+            //     }
+            // }
+            // let botStat = 100;
+            // for (let user in allStats) {
+            //     if (allStats[`${user}`].mean < botStat) {
+            //         botStat = allStats[`${user}`].mean
+            //         finalComparison.botMean = user
+            //     }
+            // }
+
+
+            // median, 
+            // mode
+            // nat 20s
+            // nat 1s
+
+    }
+
+    static async statsCompare(obj, stat) {
+        let topStat = -1;
+        let comparison = {}
+            for (let user in obj) {
+                if (obj[`${user}`][stat] >= topStat) {
+                    topStat = obj[`${user}`][stat]
+                    const statKey = `top${stat}`
+                    comparison[statKey] = user
+                }
+            }
+            let botStat = 9999;
+            for (let user in obj) {
+                if (obj[`${user}`][stat] < botStat) {
+                    botStat = obj[`${user}`][stat]
+                    const statKey = `bot${stat}`
+                    comparison[statKey] = user
+                }
+            }
+        return comparison
     }
 }
 
@@ -292,7 +379,11 @@ class RollTrackerDialog extends FormApplication {
     }
 
     getData() {
-        return RollTrackerData.printTrackedRolls(this.object)
+        const rollData = RollTrackerData.prepTrackedRolls(this.object)
+        RollTracker.log(false, rollData)
+        const modeString = rollData.stats.mode.join(', ')
+        rollData.stats.mode = modeString
+        return rollData
     }
 
     activateListeners(html) {
@@ -317,7 +408,7 @@ class RollTrackerDialog extends FormApplication {
                 }
                 break
             } case 'print': {
-                const content = await renderTemplate(RollTracker.TEMPLATES.CHATMSG, RollTrackerData.printTrackedRolls(this.object))
+                const content = await renderTemplate(RollTracker.TEMPLATES.CHATMSG, RollTrackerData.prepTrackedRolls(this.object))
                 ChatMessage.create( { content } )
             }
         }
