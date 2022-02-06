@@ -10,6 +10,16 @@
         "form-button-clear": "Clear Data",
         "form-button-download": "Download",
         "form-button-print": "Print to Chat",
+        "chat-message-highest-mean": "Highest mean held by",
+        "chat-message-highest-media": "Highest median held by",
+        "chat-message-highest-mode": "Highest mode held by",
+        "chat-message-highest-nat1s": "Highest nat1s held by",
+        "chat-message-highest-nat20s": "Highest nat20s held by",
+        "chat-message-lowest-mean": "Lowest mean held by",
+        "chat-message-lowest-median": "Lowest median held by",
+        "chat-message-lowest-mode": "Lowest mode held by",
+        "chat-message-lowest-nat1s": "Lowest nat20s held by",
+        "chat-message-lowest-nat20s": "Lowest nat1s held by",
         "settings": {
             "gm_see_players": {
                 "Name" : "See Player Roll Icons?",
