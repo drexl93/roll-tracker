@@ -130,12 +130,6 @@ class RollTracker {
         // class, because the system needs to initialize on foundry boot up before we can get its id
         this.SYSTEM = `${game.system.id}`
 
-        // Cache an instance of the dialog that pops up when we click the dice button near a player
-        // name on the playerlist. Its contents are updated at the actual time of clicking
-        // this.RollTrackerDialog = new RollTrackerDialog()
-
-        // this.RollTrackerStreakMessage = new RollTrackerStreakMessage()
-
         // A setting to toggle whether the GM can see the icon allowing them access to player roll
         // data or not
         game.settings.register(this.ID, this.SETTINGS.GM_SEE_PLAYERS, {
@@ -307,7 +301,13 @@ class RollTrackerData {
                     game.users.get(user.id)?.setFlag(RollTracker.ID, RollTracker.FLAGS.STREAK, streak)
                     if (streak.length >= 3) {
                         const streakString = streak.join(', ')
-                        ChatMessage.create({ content: `<strong>${user.name} is on a streak!</strong> </br> ${streakString}`, speaker: {alias: 'Roll Tracker'} })
+                        let chatOpts = {
+                            content: `<strong>${user.name} is on a streak!</strong> </br> ${streakString}`, speaker: {alias: 'Roll Tracker'}
+                        }
+                        if (game.user.isGM) {
+                            chatOpts.whisper = [game.userId]
+                        }
+                        ChatMessage.create(chatOpts)
                     }
                 } else {
                     game.users.get(user.id)?.unsetFlag(RollTracker.ID, RollTracker.FLAGS.STREAK)
