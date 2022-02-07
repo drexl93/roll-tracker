@@ -36,6 +36,12 @@
             "count_hidden": {
                 "Name" : "Count Blind Rolls?",
                 "Hint" : "If disabled, blind rolls for players will not be counted in the tracker."
+            },
+            "dnd5e": {
+                "restrict_counted_rolls": {
+                    "Name": "Don't Count Unlinked Rolls",
+                    "Hint": "If enabled, the tracker will not count any rolls that are not explicitly attacks/ability checks/saving throws/skill checks/recovery checks"
+                }
             }
         },
         "confirms": {

@@ -13,18 +13,7 @@
 // Whenever a chat message is created, check if it is a d20 roll. If so, add it to the tracked array
 Hooks.on('createChatMessage', (chatMessage) => {
     if (chatMessage.isRoll) {
-        const d20 = chatMessage._roll.dice?.[0].faces === 20
-        const isBlind = chatMessage.data.blind
-        const isGM = game.users.get(chatMessage.user.id)?.isGM
-        if (d20) {
-            if (isGM) {
-                RollTrackerData.createTrackedRoll(chatMessage.user, chatMessage.roll)
-            } else {
-                if ( !isBlind || (isBlind && game.settings.get(RollTracker.ID, RollTracker.SETTINGS.COUNT_HIDDEN)) ) {
-                    RollTrackerData.createTrackedRoll(chatMessage.user, chatMessage.roll)
-                }
-            }
-        }
+        RollTracker.parseMessage(chatMessage, RollTracker.SYSTEM)
     }
 })
 
@@ -71,12 +60,12 @@ Hooks.on('renderPlayerList', (playerList, html) => {
             `<button type="button" title='${tooltip}' class="roll-tracker-item-button flex0" id="${game.userId}"><i class="fas fa-dice-d20"></i></button>`
         )
         html.on('click', `#${game.userId}`, (event) => {
-            if (RollTrackerData.getUserRolls(game.userId)?.sorted?.length >= 10) {
+            // if (RollTrackerData.getUserRolls(game.userId)?.sorted?.length >= 10) {
                 new RollTrackerDialog(game.userId).render(true);
-            }
-            else {
-                ui.notifications.warn("Minimum 10 recorded rolls needed.")
-            }
+            // }
+            // else {
+            //     ui.notifications.warn("Minimum 10 recorded rolls needed.")
+            // }
         })
     }
 })
@@ -136,10 +125,21 @@ class RollTracker {
         GM_SEE_PLAYERS: 'gm_see_players',
         PLAYERS_SEE_PLAYERS: 'players_see_players',
         ROLL_STORAGE: 'roll_storage',
-        COUNT_HIDDEN: 'count_hidden'
+        COUNT_HIDDEN: 'count_hidden',
+        DND5E: {
+            RESTRICT_COUNTED_ROLLS: 'restrict_counted_rolls'
+        }
     }
 
+    // static SYSTEM = { 
+    //     SYSTEM: `${game.system.id}`
+    // }
+
+
     static initialize() {
+        // Store the current system, for settings purposes
+        this.SYSTEM = `${game.system.id}`
+
         // Cache an instance of the dialog that pops up when we click the dice button near a player
         // name on the playerlist. Its contents are updated at the actual time of clicking
         // this.RollTrackerDialog = new RollTrackerDialog()
@@ -192,6 +192,46 @@ class RollTracker {
             config: true,
             hint: `ROLL-TRACKER.settings.${this.SETTINGS.COUNT_HIDDEN}.Hint`,
         })
+
+        switch(game.system.id) {
+            case 'dnd5e':
+                game.settings.register(this.ID, this.SETTINGS.DND5E.RESTRICT_COUNTED_ROLLS, {
+                    name: `ROLL-TRACKER.settings.dnd5e.${this.SETTINGS.DND5E.RESTRICT_COUNTED_ROLLS}.Name`,
+                    default: true,
+                    type: Boolean,
+                    scope: 'world',
+                    config: true,
+                    hint: `ROLL-TRACKER.settings.dnd5e.${this.SETTINGS.DND5E.RESTRICT_COUNTED_ROLLS}.Hint`,
+                })
+                break;
+        } 
+    }
+
+    static parseMessage(chatMessage, system) {
+        const isBlind = chatMessage.data.blind
+        const rollRequirements = {
+            isd20: chatMessage._roll.dice?.[0].faces === 20,
+            blindCheck: (!isBlind) || (isBlind && game.settings.get(this.ID, this.SETTINGS.COUNT_HIDDEN)) || (isBlind && game.users.get(chatMessage.user.id)?.isGM),
+        }
+        this.log(false, 'rollRequirements', rollRequirements)
+        switch (system) {
+            case 'dnd5e':
+                if (game.settings.get(this.ID, this.SETTINGS.DND5E.RESTRICT_COUNTED_ROLLS)) {
+                    if (chatMessage.data.flags.dnd5e?.roll?.type) {
+                        rollRequirements.dnd5e_restrict_passed = true
+                    } else {
+                        rollRequirements.dnd5e_restrict_passed = false
+                    }
+                }
+                break;
+        }
+        const checksPassed = Object.values(rollRequirements).every(check => {
+            return check === true
+        })            
+        this.log(false, 'checksPassed', checksPassed)
+        if (checksPassed) {
+            RollTrackerData.createTrackedRoll(chatMessage.user, chatMessage.roll)
+        }
     }
 }
 
