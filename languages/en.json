@@ -28,6 +28,14 @@
             "roll_storage": {
                 "Name" : "Max rolls stored",
                 "Hint" : "How many rolls should the system store before older rolls begin to be overwritten?"
+            },
+            "players_see_players": {
+                "Name" : "Can Players Access Tracked Rolls?",
+                "Hint" : "If disabled, players will not be able to access their roll summaries."
+            },
+            "count_hidden": {
+                "Name" : "Count Blind Rolls?",
+                "Hint" : "If disabled, blind rolls for players will not be counted in the tracker."
             }
         },
         "confirms": {

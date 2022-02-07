@@ -14,8 +14,16 @@
 Hooks.on('createChatMessage', (chatMessage) => {
     if (chatMessage.isRoll) {
         const d20 = chatMessage._roll.dice?.[0].faces === 20
+        const isBlind = chatMessage.data.blind
+        const isGM = game.users.get(chatMessage.user.id)?.isGM
         if (d20) {
-            RollTrackerData.createTrackedRoll(chatMessage.user, chatMessage.roll)
+            if (isGM) {
+                RollTrackerData.createTrackedRoll(chatMessage.user, chatMessage.roll)
+            } else {
+                if ( !isBlind || (isBlind && game.settings.get(RollTracker.ID, RollTracker.SETTINGS.COUNT_HIDDEN)) ) {
+                    RollTrackerData.createTrackedRoll(chatMessage.user, chatMessage.roll)
+                }
+            }
         }
     }
 })
@@ -23,22 +31,37 @@ Hooks.on('createChatMessage', (chatMessage) => {
 // This adds our icon to the player list
 Hooks.on('renderPlayerList', (playerList, html) => {
 
-    // This adds our icon to ALL players on the player list, if the setting is toggled
-    if (game.user.isGM && game.settings.get(RollTracker.ID, RollTracker.SETTINGS.GM_SEE_PLAYERS)) {
-    
-    // tooltip
-        const tooltip = game.i18n.localize('ROLL-TRACKER.button-title')
-    // create the button where we want it to be
-        for (let user of game.users) {
-            const buttonPlacement = html.find(`[data-user-id="${user.id}"]`)
-            buttonPlacement.append(
-                `<button type="button" title='${tooltip}' class="roll-tracker-item-button flex0" id="${user.id}"><i class="fas fa-dice-d20"></i></button>`
+    if (game.user.isGM) {
+        if (game.settings.get(RollTracker.ID, RollTracker.SETTINGS.GM_SEE_PLAYERS)) {
+            // This adds our icon to ALL players on the player list, if the setting is toggled
+            // tooltip
+                const tooltip = game.i18n.localize('ROLL-TRACKER.button-title')
+            // create the button where we want it to be
+                for (let user of game.users) {
+                    const buttonPlacement = html.find(`[data-user-id="${user.id}"]`)
+                    buttonPlacement.append(
+                        `<button type="button" title='${tooltip}' class="roll-tracker-item-button flex0" id="${user.id}"><i class="fas fa-dice-d20"></i></button>`
+                    )
+                    html.on('click', `#${user.id}`, (event) => {
+                        new RollTrackerDialog(user.id).render(true);
+                    })
+                }
+            }
+        else {
+            // Just put the icon near the GM's name
+            const loggedInUser = html.find(`[data-user-id="${game.userId}"]`)
+
+            const tooltip = game.i18n.localize('ROLL-TRACKER.button-title')
+
+            loggedInUser.append(
+                `<button type="button" title='${tooltip}' class="roll-tracker-item-button flex0" id="${game.userId}"><i class="fas fa-dice-d20"></i></button>`
             )
-            html.on('click', `#${user.id}`, (event) => {
-                new RollTrackerDialog(user.id).render(true);
+            html.on('click', `#${game.userId}`, (event) => {
+                new RollTrackerDialog(game.userId).render(true);
             })
         }
-    } else {
+    }
+     else if (game.settings.get(RollTracker.ID, RollTracker.SETTINGS.PLAYERS_SEE_PLAYERS)) {
     // find the element which has our logged in user's id
         const loggedInUser = html.find(`[data-user-id="${game.userId}"]`)
 
@@ -48,10 +71,14 @@ Hooks.on('renderPlayerList', (playerList, html) => {
             `<button type="button" title='${tooltip}' class="roll-tracker-item-button flex0" id="${game.userId}"><i class="fas fa-dice-d20"></i></button>`
         )
         html.on('click', `#${game.userId}`, (event) => {
-            new RollTrackerDialog(game.userId).render(true);
+            if (RollTrackerData.getUserRolls(game.userId)?.sorted?.length >= 10) {
+                new RollTrackerDialog(game.userId).render(true);
+            }
+            else {
+                ui.notifications.warn("Minimum 10 recorded rolls needed.")
+            }
         })
     }
-
 })
 
 // Register our module with the Dev Mode module, for logging purposes
@@ -107,7 +134,9 @@ class RollTracker {
 
     static SETTINGS = {
         GM_SEE_PLAYERS: 'gm_see_players',
-        ROLL_STORAGE: 'roll_storage'
+        PLAYERS_SEE_PLAYERS: 'players_see_players',
+        ROLL_STORAGE: 'roll_storage',
+        COUNT_HIDDEN: 'count_hidden'
     }
 
     static initialize() {
@@ -143,6 +172,26 @@ class RollTracker {
             config: true,
             hint: `ROLL-TRACKER.settings.${this.SETTINGS.ROLL_STORAGE}.Hint`,
         })
+
+        // A setting to determine whether players can see their own tracked rolls
+        game.settings.register(this.ID, this.SETTINGS.PLAYERS_SEE_PLAYERS, {
+            name: `ROLL-TRACKER.settings.${this.SETTINGS.PLAYERS_SEE_PLAYERS}.Name`,
+            default: true,
+            type: Boolean,
+            scope: 'world',
+            config: true,
+            hint: `ROLL-TRACKER.settings.${this.SETTINGS.PLAYERS_SEE_PLAYERS}.Hint`,
+            onChange: () => ui.players.render()
+        })
+
+        game.settings.register(this.ID, this.SETTINGS.COUNT_HIDDEN, {
+            name: `ROLL-TRACKER.settings.${this.SETTINGS.COUNT_HIDDEN}.Name`,
+            default: true,
+            type: Boolean,
+            scope: 'world',
+            config: true,
+            hint: `ROLL-TRACKER.settings.${this.SETTINGS.COUNT_HIDDEN}.Hint`,
+        })
     }
 }
 
@@ -153,7 +202,9 @@ class RollTrackerData {
          const output = {
             user: game.users.get(userId),    
             sorted: game.users.get(userId)?.getFlag(RollTracker.ID, RollTracker.FLAGS.SORTED),
-            unsorted: game.users.get(userId)?.getFlag(RollTracker.ID, RollTracker.FLAGS.UNSORTED)
+            unsorted: game.users.get(userId)?.getFlag(RollTracker.ID, RollTracker.FLAGS.UNSORTED),
+            export: game.users.get(userId)?.getFlag(RollTracker.ID, RollTracker.FLAGS.EXPORT),
+            streak: game.users.get(userId)?.getFlag(RollTracker.ID, RollTracker.FLAGS.STREAK)
         } 
         return output
     }
@@ -188,14 +239,14 @@ class RollTrackerData {
                 })
 
                 // Streak calculations
-                const streak = game.users.get(user.id)?.getFlag(RollTracker.ID, RollTracker.FLAGS.STREAK) || []
+                const streak = RollTrackerData.getUserRolls(user.id)?.streak || []
                 const currentRoll = oldUnsorted.at(-1)
                 const prevRoll = oldUnsorted.at(-2)
                 if (prevRoll-1 <= currentRoll && currentRoll <= prevRoll+1) {
                     if (!streak.length) streak.push(prevRoll)
                     streak.push(currentRoll)
                     game.users.get(user.id)?.setFlag(RollTracker.ID, RollTracker.FLAGS.STREAK, streak)
-                    if (streak.length >= 2) {
+                    if (streak.length >= 3) {
                         const streakString = streak.join(', ')
                         ChatMessage.create({ content: `<strong>${user.name} is on a streak!</strong> </br> ${streakString}`, speaker: {alias: 'Roll Tracker'} })
                     }
@@ -446,7 +497,7 @@ class RollTrackerDialog extends FormApplication {
     }
 
     get exportData() {
-        return game.users.get(game.userId).getFlag(RollTracker.ID, RollTracker.FLAGS.EXPORT)
+        return RollTrackerData.getUserRolls(game.userId)?.export
     }
 
     // This function gets the header data from FormApplication but modifies it to add our export button
