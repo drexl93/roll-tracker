@@ -6,7 +6,7 @@
         "form-label-mode": "Mode",
         "form-label-nat1s": "Nat 1s",
         "form-label-nat20s": "Nat 20s",
-        "form-label-streak": "Current streak",
+        "form-label-lastRoll": "Last roll",
         "form-button-clear": "Clear Data",
         "form-button-download": "Download",
         "form-button-print": "Print to Chat",
