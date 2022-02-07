@@ -40,7 +40,13 @@
             "dnd5e": {
                 "restrict_counted_rolls": {
                     "Name": "Don't Count Unlinked Rolls",
-                    "Hint": "If enabled, the tracker will not count any rolls that are not explicitly attacks/ability checks/saving throws/skill checks/recovery checks"
+                    "Hint": "If enabled, the tracker will not count any rolls that are not explicitly linked to an actor. Ex: typing /r 1d20 in the chat will not be counted, but an attack or saving throw will be."
+                }
+            },
+            "pf2e": {
+                "restrict_counted_rolls": {
+                    "Name": "Don't Count Unlinked Rolls",
+                    "Hint": "If enabled, the tracker will not count any rolls that are not explicitly linked to an actor. Ex: typing /r 1d20 in the chat will not be counted, but an attack or saving throw will be."
                 }
             }
         },

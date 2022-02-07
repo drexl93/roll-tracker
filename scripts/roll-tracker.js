@@ -128,6 +128,9 @@ class RollTracker {
         COUNT_HIDDEN: 'count_hidden',
         DND5E: {
             RESTRICT_COUNTED_ROLLS: 'restrict_counted_rolls'
+        },
+        PF2E: {
+            RESTRICT_COUNTED_ROLLS: 'restrict_counted_rolls'
         }
     }
 
@@ -193,7 +196,7 @@ class RollTracker {
             hint: `ROLL-TRACKER.settings.${this.SETTINGS.COUNT_HIDDEN}.Hint`,
         })
 
-        switch(game.system.id) {
+        switch(this.SYSTEM) {
             case 'dnd5e':
                 game.settings.register(this.ID, this.SETTINGS.DND5E.RESTRICT_COUNTED_ROLLS, {
                     name: `ROLL-TRACKER.settings.dnd5e.${this.SETTINGS.DND5E.RESTRICT_COUNTED_ROLLS}.Name`,
@@ -202,6 +205,16 @@ class RollTracker {
                     scope: 'world',
                     config: true,
                     hint: `ROLL-TRACKER.settings.dnd5e.${this.SETTINGS.DND5E.RESTRICT_COUNTED_ROLLS}.Hint`,
+                })
+                break;
+            case 'pf2e':
+                game.settings.register(this.ID, this.SETTINGS.PF2E.RESTRICT_COUNTED_ROLLS, {
+                    name: `ROLL-TRACKER.settings.pf2e.${this.SETTINGS.PF2E.RESTRICT_COUNTED_ROLLS}.Name`,
+                    default: true,
+                    type: Boolean,
+                    scope: 'world',
+                    config: true,
+                    hint: `ROLL-TRACKER.settings.pf2e.${this.SETTINGS.PF2E.RESTRICT_COUNTED_ROLLS}.Hint`,
                 })
                 break;
         } 
@@ -221,6 +234,15 @@ class RollTracker {
                         rollRequirements.dnd5e_restrict_passed = true
                     } else {
                         rollRequirements.dnd5e_restrict_passed = false
+                    }
+                }
+                break;
+            case 'pf2e':
+                if (game.settings.get(this.ID, this.SETTINGS.PF2E.RESTRICT_COUNTED_ROLLS)) {
+                    if (chatMessage.data.flags.pf2e?.context?.type) {
+                        rollRequirements.pf2e_restrict_passed = true
+                    } else {
+                        rollRequirements.pf2e_restrict_passed = false
                     }
                 }
                 break;
