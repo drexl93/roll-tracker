@@ -356,23 +356,23 @@ class RollTrackerData {
             stats.nat1s = 0,
             stats.nat20s = 0
         } else {
-            stats = this.calculate(printRolls)
+            stats = await this.calculate(printRolls)
             // For debugging purposes primarily:
-            stats.lastRoll = this.getUserRolls(userId)?.unsorted.at(-1)
+            // stats.lastRoll = this.getUserRolls(userId)?.unsorted.at(-1)
         }
 
-        const genComp = await this.generalComparison()
-        let averages = {}
-        for (let stat in genComp) {
-            averages[stat] = genComp[stat].average
-        }
-        RollTracker.log(false, averages)
-
+        // DISABLED CODING TO COLLECT AND DISPLAY AVERAGES ACROSS PLAYERS
+        // const genComp = await this.generalComparison()
+        // let averages = {}
+        // for (let stat in genComp) {
+        //     averages[stat] = genComp[stat].average
+        // }
         
-        return { username, thisUserId, stats, averages }
+        return { username, thisUserId, stats 
+            /**, averages */ }
     }
 
-    static calculate(rolls) {
+    static async calculate(rolls) {
     // Turn the raw data array into usable stats:
     // Mean
         const sum = rolls.reduce((firstValue, secondValue) => {
@@ -386,6 +386,31 @@ class RollTrackerData {
         const median = rolls[medianPosition-1]
 
     // Mode
+        const res = await this.calcMode(rolls)
+        const modeObj = res.modeObj
+        const mode = res.mode
+        const comparator = res.comparator
+
+    // We prepare the export data file at this point because the data is conveniently
+    // ordered in modeObj
+        this.prepareExportData(modeObj)
+
+    // How many Nat1s or Nat20s do we have?
+        const nat1s = modeObj[1] || 0
+        const nat20s = modeObj[20] || 0        
+
+        return {
+            mean,
+            median,
+            mode,
+            comparator,
+            nat1s,
+            nat20s,
+        }
+    }
+
+    static async calcMode(rolls) {
+        // Mode
         let modeObj = {}
         rolls.forEach(e => {
             if (!modeObj[e]) {
@@ -409,22 +434,7 @@ class RollTrackerData {
             }
         }
 
-    // We prepare the export data file at this point because the data is conveniently
-    // ordered in modeObj
-        this.prepareExportData(modeObj)
-
-    // How many Nat1s or Nat20s do we have?
-        const nat1s = modeObj[1] || 0
-        const nat20s = modeObj[20] || 0        
-
-        return {
-            mean,
-            median,
-            mode,
-            comparator,
-            nat1s,
-            nat20s,
-        }
+        return { modeObj, mode, comparator }
     }
 
     static prepareExportData(data) {
@@ -439,45 +449,79 @@ class RollTrackerData {
         game.users.get(game.userId)?.setFlag(RollTracker.ID, RollTracker.FLAGS.EXPORT, fileContent)
     }
 
-    /** FUNCTIONAL BUT NOT YET IMPLEMENTED IN UI*/
-    // This function is meant to generate an overall picture across all players of rankings in the
-    // various stats.
-    // In this format it has difficulty with 'ties' - rather than displaying all tied users it only
-    // displays the last one processed
+    /**
+     *  FUNCTIONAL BUT NOT YET IMPLEMENTED IN UI
+     * This function is meant to generate an overall picture across all players of rankings in the
+     * various stats. Fully functional, but not accessible in the UI yet. Code exists to make the 
+     * averages display alongside the individual player numbers in the tracking card but I didn't like that
+    
+
     static async generalComparison() {
         let allStats = {}
         for (let user of game.users) {
             if (game.users.get(user.id)?.getFlag(RollTracker.ID, RollTracker.FLAGS.SORTED)) {
                 const rolls = this.getUserRolls(user.id)?.sorted
-                allStats[`${user.id}`] = this.calculate(rolls)
-                // allStats[user.id].mode = [allStats[user.id].mode.at(0), allStats[user.id].mode.at(-1)]
+                allStats[`${user.id}`] = await this.calculate(rolls)
             }
         }
         // highest/lowest of
 
-            const means = await this.statsCompare(allStats, 'mean')
-
             const modes = await this.statsCompare(allStats, 'comparator')
-
+            const means = await this.statsCompare(allStats, 'mean')
             const medians = await this.statsCompare(allStats, 'median')
-
             const nat1s = await this.statsCompare(allStats, 'nat1s')
-
             const nat20s = await this.statsCompare(allStats, 'nat20s')
 
-
             let finalComparison = {}
-            
             this.prepStats(finalComparison, 'mean', means, allStats)
             this.prepStats(finalComparison, 'median', medians, allStats)
             this.prepStats(finalComparison, 'nat1s', nat1s, allStats)
             this.prepStats(finalComparison, 'nat20s', nat20s, allStats)
+            this.prepStats(finalComparison, 'mode', modes, allStats)
+
+            // Mode specific calculations. 
+            // When displaying "highest" mode and "lowest" mode, if that player has multiple modes, pick the highest
+            // or lowest respectively.
+            for (let user in finalComparison.mode.highest) {
+                finalComparison.mode.highest[user] = { value: finalComparison.mode.highest[user].at(-1), comparator: allStats[user].comparator }
+            }
+            for (let user in finalComparison.mode.lowest) {
+                finalComparison.mode.lowest[user] = { value: finalComparison.mode.lowest[user].at(0), comparator: allStats[user].comparator }
+            }
+
+            // The average mode across players should be the mode of modes
+            let newModeObj = {}
+            for (let user in allStats) {
+                for (let i = 1; i <= allStats[user].comparator; i++) {
+                    allStats[user].mode.forEach(e => {
+                        if (newModeObj[e]) newModeObj[e]++
+                        else (newModeObj[e] = 1)
+                    })
+                }
+            }
+
+            RollTracker.log(false, 'newmodeobj', newModeObj)
+
+            let avmodeComparator = 0
+            for (let number in newModeObj) {
+                if (newModeObj[number] > avmodeComparator) {
+                    avmodeComparator = newModeObj[number]
+                    finalComparison.mode.average = [number]
+                } else if (newModeObj[number] === avmodeComparator) {
+                    finalComparison.mode.average.push(newModeObj[number])
+                }
+            }
 
             return finalComparison
-    }
+    } 
+
+    * **
+    */
 
     // A general function to compare incoming 'stats' using a specific data object in the format
     // generated in the allStats variable of generalComparison()
+    // Don't use this for MODE - it will not work, as modes are stored as arrays and compared
+    // differently
     static async statsCompare(obj, stat) {
         let topStat = -1;
         let comparison = {}
@@ -502,14 +546,9 @@ class RollTrackerData {
 
         let statSum = 0
             for (let user in obj) {
-                if (stat !== 'comparator') {
-                    statSum += obj[`${user}`][stat]
-                }
+                statSum += obj[`${user}`][stat]
             }
-        // RollTracker.log(false, `${stat} averaging array: ${averagingArray}`)
-        // const statSum = averagingArray.reduce((accumulator, currentValue) => {
-        //     return accumulator + currentValue
-        // })
+
         comparison.average = Math.round(statSum / (Object.keys(obj).length))
         
         return comparison
@@ -525,7 +564,7 @@ class RollTrackerData {
             for (let user of statObj.bot) {
                 finalComparison[statName].lowest[`${user}`] = allStats[`${user}`][statName]
             }
-            finalComparison[statName].average = statObj.average
+            if (statName !== 'mode') finalComparison[statName].average = statObj.average
     }
 }
 
@@ -555,7 +594,9 @@ class RollTrackerDialog extends FormApplication {
         // prepTrackedRolls generates raw data which can be more easily read/compared/manipulated
         // as in generalComparison()
         const modeString = rollData.stats.mode.join(', ')
+        // const modeString_averages = rollData.averages.mode.join(', ')
         rollData.stats.mode = modeString
+        // rollData.averages.mode = modeString_averages
 
         return rollData
     }
@@ -585,7 +626,11 @@ class RollTrackerDialog extends FormApplication {
                 }
                 break
             } case 'print': {
-                const content = await renderTemplate(RollTracker.TEMPLATES.CHATMSG, RollTrackerData.prepTrackedRolls(this.object))
+                const rollData = await RollTrackerData.prepTrackedRolls(this.object)
+                const modeString = rollData.stats.mode.join(', ')
+                rollData.stats.mode = modeString
+
+                const content = await renderTemplate(RollTracker.TEMPLATES.CHATMSG, rollData)
                 ChatMessage.create( { content } )
             }
         }
