@@ -85,7 +85,8 @@ class RollTracker {
     static FLAGS = {
         SORTED: 'sorted',
         EXPORT: 'export',
-        UNSORTED: 'unsorted'
+        UNSORTED: 'unsorted',
+        STREAK: 'streak'
     }
 
     static TEMPLATES = {
@@ -112,7 +113,9 @@ class RollTracker {
     static initialize() {
         // Cache an instance of the dialog that pops up when we click the dice button near a player
         // name on the playerlist. Its contents are updated at the actual time of clicking
-        this.RollTrackerDialog = new RollTrackerDialog()
+        // this.RollTrackerDialog = new RollTrackerDialog()
+
+        // this.RollTrackerStreakMessage = new RollTrackerStreakMessage()
 
         // A setting to toggle whether the GM can see the icon allowing them access to player roll
         // data or not
@@ -183,11 +186,27 @@ class RollTrackerData {
                     oldUnsorted.push(e)
                     updatedRolls = this.sortRolls(updatedRolls)
                 })
+
+                // Streak calculations
+                const streak = game.users.get(user.id)?.getFlag(RollTracker.ID, RollTracker.FLAGS.STREAK) || []
+                const currentRoll = oldUnsorted.at(-1)
+                const prevRoll = oldUnsorted.at(-2)
+                if (prevRoll-1 <= currentRoll && currentRoll <= prevRoll+1) {
+                    if (!streak.length) streak.push(prevRoll)
+                    streak.push(currentRoll)
+                    game.users.get(user.id)?.setFlag(RollTracker.ID, RollTracker.FLAGS.STREAK, streak)
+                    if (streak.length >= 2) {
+                        const streakString = streak.join(', ')
+                        ChatMessage.create({ content: `<strong>${user.name} is on a streak!</strong> </br> ${streakString}`, speaker: {alias: 'Roll Tracker'} })
+                    }
+                } else {
+                    game.users.get(user.id)?.unsetFlag(RollTracker.ID, RollTracker.FLAGS.STREAK)
+                }
+                
             } else {
                 updatedRolls = newNumbers
                 oldUnsorted = newNumbers
             }
-            RollTracker.log(false, `sorted rolls: ${updatedRolls}, unsorted rolls: ${oldUnsorted}`)
             return Promise.all([
                 game.users.get(user.id)?.setFlag(RollTracker.ID, RollTracker.FLAGS.SORTED, updatedRolls),
                 game.users.get(user.id)?.setFlag(RollTracker.ID, RollTracker.FLAGS.UNSORTED, oldUnsorted)
@@ -200,7 +219,8 @@ class RollTrackerData {
         return Promise.all([
             game.users.get(userId)?.unsetFlag(RollTracker.ID, RollTracker.FLAGS.SORTED), 
             game.users.get(userId)?.unsetFlag(RollTracker.ID, RollTracker.FLAGS.EXPORT),
-            game.users.get(userId)?.unsetFlag(RollTracker.ID, RollTracker.FLAGS.UNSORTED)
+            game.users.get(userId)?.unsetFlag(RollTracker.ID, RollTracker.FLAGS.UNSORTED),
+            game.users.get(userId)?.unsetFlag(RollTracker.ID, RollTracker.FLAGS.STREAK)
         ])
     }
 
@@ -214,7 +234,9 @@ class RollTrackerData {
         const username = this.getUserRolls(userId).user.name
         const thisUserId = this.getUserRolls(userId).user.id
         const printRolls = this.getUserRolls(userId).sorted
+
         let stats = {}
+
         if (!printRolls) {
             stats.mean = 0
             stats.median = 0
@@ -271,7 +293,7 @@ class RollTrackerData {
 
     // How many Nat1s or Nat20s do we have?
         const nat1s = modeObj[1] || 0
-        const nat20s = modeObj[20] || 0
+        const nat20s = modeObj[20] || 0        
 
         return {
             mean,
