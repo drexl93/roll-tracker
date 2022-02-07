@@ -515,13 +515,11 @@ class RollTrackerData {
             return finalComparison
     } 
 
-    * **
-    */
 
     // A general function to compare incoming 'stats' using a specific data object in the format
     // generated in the allStats variable of generalComparison()
     // Don't use this for MODE - it will not work, as modes are stored as arrays and compared
-    // differently
+    // differently. To find the highest/lowest mode among players, run this func with 'comparator'
     static async statsCompare(obj, stat) {
         let topStat = -1;
         let comparison = {}
@@ -554,6 +552,9 @@ class RollTrackerData {
         return comparison
     }
 
+    // A function preparing the output object of generalComparison (the obj is called finalComparison)
+    // using previously calculated stats
+
     static async prepStats(finalComparison, statName, statObj, allStats) {
         finalComparison[statName] = {}
             finalComparison[statName].highest = {}
@@ -566,6 +567,9 @@ class RollTrackerData {
             }
             if (statName !== 'mode') finalComparison[statName].average = statObj.average
     }
+
+    * **
+    */
 }
 
 class RollTrackerDialog extends FormApplication {
@@ -590,9 +594,9 @@ class RollTrackerDialog extends FormApplication {
         const rollData = await RollTrackerData.prepTrackedRolls(this.object)
 
         // The lines below convert the mode array returned from prepTrackedRolls into a prettier 
-        // string for display purposes. We choose to do the conversion to string here so that
-        // prepTrackedRolls generates raw data which can be more easily read/compared/manipulated
-        // as in generalComparison()
+        // string for display purposes. We choose to do the conversion to string here so that the
+        // prepTrackedRolls func can continue to generate raw data which can be more easily 
+        // read/compared/manipulated, as in generalComparison()
         const modeString = rollData.stats.mode.join(', ')
         // const modeString_averages = rollData.averages.mode.join(', ')
         rollData.stats.mode = modeString
