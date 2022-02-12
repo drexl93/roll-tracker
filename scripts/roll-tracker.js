@@ -6,6 +6,11 @@
  * SIZE OF DICE TO BE TRACKED
  */
 
+/** QUESTIONS:
+ * I DON'T UNDERSTAND HOW ROLLTRACKERHELPER.WAITFOR3DDICEMESSAGE ACTUALLY WORKS - WHAT DOES RESOLVE(TRUE) MEAN? DOESN'T IT BECOME
+ * AN ENDLESS LOOP IF THE 'ELSE' OF THE FIRST CONDITIONAL JUST RUNS THE FUNCTION AGAIN?
+ */
+
 // Whenever a chat message is created, check if it contains a roll. If so, parse it to determine
 // whether it should be tracked, according to our module settings
 Hooks.on('createChatMessage', (chatMessage) => {
@@ -211,13 +216,13 @@ class RollTracker {
     // This function creates an object containing all the requirements that need to be met for the roll
     // to be counted, taking into account all the currently active settings. If all of the conditions are
     // met, the roll is recorded.
-    static parseMessage(chatMessage, system) {
+    static async parseMessage(chatMessage, system) {
+        await RollTrackerHelper.waitFor3DDiceMessage(chatMessage.id)
         const isBlind = chatMessage.data.blind
         const rollRequirements = {
             isd20: chatMessage._roll.dice?.[0].faces === 20,
             blindCheck: (!isBlind) || (isBlind && game.settings.get(this.ID, this.SETTINGS.COUNT_HIDDEN)) || (isBlind && game.users.get(chatMessage.user.id)?.isGM),
         }
-        this.log(false, 'rollRequirements', rollRequirements)
         switch (system) {
             case 'dnd5e':
                 if (game.settings.get(this.ID, this.SETTINGS.DND5E.RESTRICT_COUNTED_ROLLS)) {
@@ -246,6 +251,30 @@ class RollTracker {
             RollTrackerData.createTrackedRoll(chatMessage.user, chatMessage.roll)
         }
     }
+}
+
+class RollTrackerHelper {
+// Functions that don't specifically manipulate data but are referenced or used
+    // If Dice So Nice is enabled, this will help us wait until after the animation is shown
+    // to send chat messages such as the Streak chat message, so we don't ruin the surprise of
+    // the roll
+    static async waitFor3DDiceMessage(targetMessageId) {
+        function buildHook(resolve) {
+          Hooks.once('diceSoNiceRollComplete', (messageId) => {
+            if (targetMessageId === messageId)
+              resolve(true);
+            else
+              buildHook(resolve)
+          });
+        }
+        return new Promise((resolve, reject) => {
+          if(game.dice3d){
+            buildHook(resolve);
+          } else {
+            resolve(true);
+          }
+        });
+      }          
 }
 
 class RollTrackerData { 
