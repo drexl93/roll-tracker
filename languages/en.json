@@ -37,6 +37,10 @@
                 "Name" : "Count Blind Rolls?",
                 "Hint" : "If disabled, blind rolls for players will not be counted in the tracker."
             },
+            "streak_message_hidden": {
+                "Name" : "Always Hide Streak Message?",
+                "Hint" : "If enabled, streak notification messages are always whispered to the GM, who may choose to reveal them."
+            },
             "dnd5e": {
                 "restrict_counted_rolls": {
                     "Name": "Don't Count Unlinked Rolls",

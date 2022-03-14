@@ -77,12 +77,14 @@ Hooks.once('init', () => {
     RollTracker.initialize()
 })
 
+// We're using sockets to ensure the streak message is always transmitted by the GM.
+// This allows us to completely hide it from players if a part of the streak was blind, or if
+// the Hide All Streak Messages setting is enabled
 Hooks.once('ready', () => {
     RollTracker.log(false, 'socket ready')
     socket.on("module.roll-tracker", (data) => {
-        RollTracker.log(false, 'received')
         if (game.user.isGM) {
-            data.whisper = [game.userId]
+            if (data.whisper === true) data.whisper = [game.userId]
             ChatMessage.create(data)
         }
     }) 
@@ -132,6 +134,7 @@ class RollTracker {
         PLAYERS_SEE_PLAYERS: 'players_see_players',
         ROLL_STORAGE: 'roll_storage',
         COUNT_HIDDEN: 'count_hidden',
+        STREAK_MESSAGE_HIDDEN: 'streak_message_hidden',
         DND5E: {
             RESTRICT_COUNTED_ROLLS: 'restrict_counted_rolls'
         },
@@ -192,6 +195,15 @@ class RollTracker {
             scope: 'world',
             config: true,
             hint: `ROLL-TRACKER.settings.${this.SETTINGS.COUNT_HIDDEN}.Hint`,
+        })
+
+        game.settings.register(this.ID, this.SETTINGS.STREAK_MESSAGE_HIDDEN, {
+            name: `ROLL-TRACKER.settings.${this.SETTINGS.STREAK_MESSAGE_HIDDEN}.Name`,
+            default: true,
+            type: Boolean,
+            scope: 'world',
+            config: true,
+            hint: `ROLL-TRACKER.settings.${this.SETTINGS.STREAK_MESSAGE_HIDDEN}.Hint`,
         })
 
         // System specific settings
@@ -255,10 +267,9 @@ class RollTracker {
         const checksPassed = Object.values(rollRequirements).every(check => {
             return check === true
         })            
-        this.log(false, 'checksPassed', checksPassed)
         if (chatMessage.isContentVisible) await RollTrackerHelper.waitFor3DDiceMessage(chatMessage.id)
         if (checksPassed) {
-            RollTrackerData.createTrackedRoll(chatMessage.user, chatMessage.roll, chatMessage.data.blind)
+            RollTrackerData.createTrackedRoll(chatMessage.user, chatMessage.roll, isBlind)
         }
     }
 }
@@ -332,7 +343,14 @@ class RollTrackerData {
 
                 // Streak calculations
                 let streak = {}
+
+                // If there was an ongoing streak, pull those numbers for comparison
                 streak.numbers = RollTrackerData.getUserRolls(user.id)?.streak?.numbers || []
+
+                // If the last roll made was a blind roll, the potential streak currently
+                // under examination includes a blind roll
+                streak.includesBlind = RollTrackerData.getUserRolls(user.id)?.streak?.includesBlind || isBlind
+
                 const currentRoll = oldUnsorted.at(-1)
                 const prevRoll = oldUnsorted.at(-2)
                 if (prevRoll-1 <= currentRoll && currentRoll <= prevRoll+1) {
@@ -343,12 +361,16 @@ class RollTrackerData {
                         let chatOpts = {
                             content: `<strong>${user.name} is on a streak!</strong> </br> ${streakString}`, speaker: {alias: 'Roll Tracker'}
                         }
-                        if (isBlind || streak.includesBlind) {
-                            chatOpts.blind = true
-                            streak.includesBlind = isBlind
+
+                        // If the current roll is blind, or the last roll was blind, the streak message should be transmitted
+                        // only to the GM (as it may reveal earlier rolls).
+                        // Alternatively, if the setting to make streak messages always hidden is enabled, transmit it only
+                        // to the GM
+                        const streakHidden = game.settings.get(RollTracker.ID, RollTracker.SETTINGS.STREAK_MESSAGE_HIDDEN)
+                        if (isBlind || streak.includesBlind || streakHidden) {
+                            chatOpts.whisper = true
                         }
                         socket.emit("module.roll-tracker", chatOpts)
-                        RollTracker.log(false, 'streak!')
                     }
                     game.users.get(user.id)?.setFlag(RollTracker.ID, RollTracker.FLAGS.STREAK, streak)
 
