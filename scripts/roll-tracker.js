@@ -77,6 +77,16 @@ Hooks.once('init', () => {
     RollTracker.initialize()
 })
 
+Hooks.once('ready', () => {
+    RollTracker.log(false, 'socket ready')
+    socket.on("module.roll-tracker", (data) => {
+        RollTracker.log(false, 'received')
+        if (game.user.isGM) {
+            data.whisper = [game.userId]
+            ChatMessage.create(data)
+        }
+    }) 
+})
 
 // Just a helper handlebars function so for our "Mode" line in the FormApp, if there is exactly 1
 // instance of a mode, the text will read "instance" as opposed to "instances"
@@ -210,14 +220,13 @@ class RollTracker {
                     hint: `ROLL-TRACKER.settings.pf2e.${this.SETTINGS.PF2E.RESTRICT_COUNTED_ROLLS}.Hint`,
                 })
                 break;
-        } 
+        }   
     }
 
     // This function creates an object containing all the requirements that need to be met for the roll
     // to be counted, taking into account all the currently active settings. If all of the conditions are
     // met, the roll is recorded.
     static async parseMessage(chatMessage, system) {
-        await RollTrackerHelper.waitFor3DDiceMessage(chatMessage.id)
         const isBlind = chatMessage.data.blind
         const rollRequirements = {
             isd20: chatMessage._roll.dice?.[0].faces === 20,
@@ -247,8 +256,9 @@ class RollTracker {
             return check === true
         })            
         this.log(false, 'checksPassed', checksPassed)
+        if (chatMessage.isContentVisible) await RollTrackerHelper.waitFor3DDiceMessage(chatMessage.id)
         if (checksPassed) {
-            RollTrackerData.createTrackedRoll(chatMessage.user, chatMessage.roll)
+            RollTrackerData.createTrackedRoll(chatMessage.user, chatMessage.roll, chatMessage.data.blind)
         }
     }
 }
@@ -291,7 +301,7 @@ class RollTrackerData {
         return output
     }
 
-    static createTrackedRoll(user, rollData) {
+    static createTrackedRoll(user, rollData, isBlind) {
         if (game.userId === user.id) {
         // this check is necessary because (I think) every instance of foundry currently running tries
         // to create and update these rolls. Players, however, do not have permission to edit the data
@@ -321,23 +331,27 @@ class RollTrackerData {
                 })
 
                 // Streak calculations
-                const streak = RollTrackerData.getUserRolls(user.id)?.streak || []
+                let streak = {}
+                streak.numbers = RollTrackerData.getUserRolls(user.id)?.streak?.numbers || []
                 const currentRoll = oldUnsorted.at(-1)
                 const prevRoll = oldUnsorted.at(-2)
                 if (prevRoll-1 <= currentRoll && currentRoll <= prevRoll+1) {
-                    if (!streak.length) streak.push(prevRoll)
-                    streak.push(currentRoll)
-                    game.users.get(user.id)?.setFlag(RollTracker.ID, RollTracker.FLAGS.STREAK, streak)
-                    if (streak.length >= 3) {
-                        const streakString = streak.join(', ')
+                    if (!streak.numbers.length) streak.numbers.push(prevRoll)
+                    streak.numbers.push(currentRoll)
+                    if (streak.numbers.length >= 2) {
+                        const streakString = streak.numbers.join(', ')
                         let chatOpts = {
                             content: `<strong>${user.name} is on a streak!</strong> </br> ${streakString}`, speaker: {alias: 'Roll Tracker'}
                         }
-                        if (game.user.isGM) {
-                            chatOpts.whisper = [game.userId]
+                        if (isBlind || streak.includesBlind) {
+                            chatOpts.blind = true
+                            streak.includesBlind = isBlind
                         }
-                        ChatMessage.create(chatOpts)
+                        socket.emit("module.roll-tracker", chatOpts)
+                        RollTracker.log(false, 'streak!')
                     }
+                    game.users.get(user.id)?.setFlag(RollTracker.ID, RollTracker.FLAGS.STREAK, streak)
+
                 } else {
                     game.users.get(user.id)?.unsetFlag(RollTracker.ID, RollTracker.FLAGS.STREAK)
                 }
