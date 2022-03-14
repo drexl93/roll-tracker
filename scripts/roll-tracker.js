@@ -447,8 +447,22 @@ class RollTrackerData {
 
     // Median
         // We've already sorted the rolls as they've come in
-        const medianPosition = Math.round(rolls.length / 2)
-        const median = rolls[medianPosition-1]
+        let median = 0
+
+        // If there are an odd number of rolls, the median is the centermost number
+        if (rolls.length % 2 === 1) {
+            let medianPosition = Math.floor(rolls.length / 2)
+            median = rolls[medianPosition]
+        // If there are an even number of rolls, the median is the average of the two
+        // centermost numbers
+        } else {
+            let beforeMedian = (rolls.length / 2)
+            let afterMedian = beforeMedian + 1
+            // Subtracting one from each as we transition from length -> index
+            // There's a shorter way of doing this but this makes the most sense to me for later
+            median = (rolls[beforeMedian-1] + rolls[afterMedian-1]) / 2
+        }
+         
 
     // Mode
         const res = await this.calcMode(rolls)
