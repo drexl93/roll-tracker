@@ -81,7 +81,6 @@ Hooks.once('init', () => {
 // This allows us to completely hide it from players if a part of the streak was blind, or if
 // the Hide All Streak Messages setting is enabled
 Hooks.once('ready', () => {
-    RollTracker.log(false, 'socket ready')
     socket.on("module.roll-tracker", (data) => {
         if (game.user.isGM) {
             if (data.whisper === true) data.whisper = [game.userId]
@@ -370,7 +369,13 @@ class RollTrackerData {
                         if (isBlind || streak.includesBlind || streakHidden) {
                             chatOpts.whisper = true
                         }
-                        socket.emit("module.roll-tracker", chatOpts)
+                        if (!game.user.isGM) {
+                            socket.emit("module.roll-tracker", chatOpts)
+                        } else {
+                            chatOpts.whisper = [game.userId]
+                            ChatMessage.create(chatOpts)
+                        }
+
                     }
                     game.users.get(user.id)?.setFlag(RollTracker.ID, RollTracker.FLAGS.STREAK, streak)
 
