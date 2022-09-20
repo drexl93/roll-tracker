@@ -41,6 +41,13 @@
                 "Name" : "Always Hide Streak Message?",
                 "Hint" : "If enabled, streak notification messages are always whispered to the GM, who may choose to reveal them."
             },
+            "streak_behaviour": {
+                "Name" : "Streak Behaviour",
+                "Hint" : "Choose whether to disable streak messages, send them only to the GM, or show them publicly.",
+                "disable": "Disable Streak Messages",
+                "hidden": "Whisper Streaks to GM",
+                "shown": "Send Streaks to public chat"
+            },
             "dnd5e": {
                 "restrict_counted_rolls": {
                     "Name": "Don't Count Unlinked Rolls",

@@ -1,12 +1,12 @@
 {
-    "name": "roll-tracker",
-    "title": "Roll Tracker",
-    "description": "A simple module which tracks the d20 rolls made and logs them by each user.",
-    "authors": [
-        {
-            "name": "drexl93"
-        }
-    ],
+  "title": "Roll Tracker",
+  "description": "A simple module which tracks the d20 rolls made and logs them by each user.",
+  "authors": [
+    {
+      "name": "drexl93",
+      "flags": {}
+    }
+  ],
     "version": "1.5.1",
     "minimumCoreVersion": "9.0.0",
     "compatibleCoreVersion": "9.0.0",
@@ -20,11 +20,17 @@
         {
             "lang": "en",
             "name": "English",
-            "path": "languages/en.json"
-        }
-    ],
-    "socket": true,
-    "url": "https://github.com/drexl93/roll-tracker",
-    "manifest": "https://github.com/drexl93/roll-tracker/raw/main/module.json",
-    "download": "https://github.com/drexl93/roll-tracker/raw/main/roll-tracker.zip"
+      "path": "languages/en.json",
+      "flags": {}
+    }
+  ],
+  "socket": true,
+  "url": "https://github.com/drexl93/roll-tracker",
+  "manifest": "https://github.com/drexl93/roll-tracker/raw/main/module.json",
+  "download": "https://github.com/drexl93/roll-tracker/raw/main/roll-tracker.zip",
+  "id": "roll-tracker",
+  "compatibility": {
+    "minimum": "9.0.0",
+    "verified": "9.0.0"
+  }
 }

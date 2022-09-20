@@ -81,7 +81,7 @@ Hooks.once('init', () => {
 // This allows us to completely hide it from players if a part of the streak was blind, or if
 // the Hide All Streak Messages setting is enabled
 Hooks.once('ready', () => {
-    socket.on("module.roll-tracker", (data) => {
+    game.socket.on("module.roll-tracker", (data) => {
         if (game.user.isGM) {
             if (data.whisper === true) data.whisper = [game.userId]
             ChatMessage.create(data)
@@ -134,6 +134,7 @@ class RollTracker {
         ROLL_STORAGE: 'roll_storage',
         COUNT_HIDDEN: 'count_hidden',
         STREAK_MESSAGE_HIDDEN: 'streak_message_hidden',
+        STREAK_BEHAVIOUR: 'streak_behaviour',
         DND5E: {
             RESTRICT_COUNTED_ROLLS: 'restrict_counted_rolls'
         },
@@ -205,6 +206,20 @@ class RollTracker {
             hint: `ROLL-TRACKER.settings.${this.SETTINGS.STREAK_MESSAGE_HIDDEN}.Hint`,
         })
 
+        game.settings.register(this.ID, this.SETTINGS.STREAK_BEHAVIOUR, {
+            name: `ROLL-TRACKER.settings.${this.SETTINGS.STREAK_BEHAVIOUR}.Name`,
+            default: true,
+            type: String,
+            scope: 'world',
+            config: true,
+            // hint: `ROLL-TRACKER.settings.${this.SETTINGS.STREAK_BEHAVIOUR}.Hint`,
+            choices: {
+                hidden: game.i18n.localize(`ROLL-TRACKER.settings.${this.SETTINGS.STREAK_BEHAVIOUR}.hidden`),
+                disable: game.i18n.localize(`ROLL-TRACKER.settings.${this.SETTINGS.STREAK_BEHAVIOUR}.disable`),
+                shown: game.i18n.localize(`ROLL-TRACKER.settings.${this.SETTINGS.STREAK_BEHAVIOUR}.shown`)
+            }
+        })
+
         // System specific settings
         switch(this.SYSTEM) {
             case 'dnd5e':
@@ -238,15 +253,15 @@ class RollTracker {
     // to be counted, taking into account all the currently active settings. If all of the conditions are
     // met, the roll is recorded.
     static async parseMessage(chatMessage, system) {
-        const isBlind = chatMessage.data.blind
+        const isBlind = chatMessage.blind
         const rollRequirements = {
-            isd20: chatMessage._roll.dice?.[0].faces === 20,
-            blindCheck: (!isBlind) || (isBlind && game.settings.get(this.ID, this.SETTINGS.COUNT_HIDDEN)) || (isBlind && game.users.get(chatMessage.user.id)?.isGM),
+            isd20: chatMessage.rolls[0]?.dice[0].faces === 20,
+            blindCheck: (!isBlind) || (isBlind && game.settings.get(this.ID, this.SETTINGS.COUNT_HIDDEN)) || (isBlind && chatMessage.rolls[0]?.roller.isGM),
         }
         switch (system) {
             case 'dnd5e':
                 if (game.settings.get(this.ID, this.SETTINGS.DND5E.RESTRICT_COUNTED_ROLLS)) {
-                    if (chatMessage.data.flags.dnd5e?.roll?.type) {
+                    if (chatMessage.flags.dnd5e?.roll?.type) {
                         rollRequirements.dnd5e_restrict_passed = true
                     } else {
                         rollRequirements.dnd5e_restrict_passed = false
@@ -255,7 +270,7 @@ class RollTracker {
                 break;
             case 'pf2e':
                 if (game.settings.get(this.ID, this.SETTINGS.PF2E.RESTRICT_COUNTED_ROLLS)) {
-                    if (chatMessage.data.flags.pf2e?.context?.type) {
+                    if (chatMessage.flags.pf2e?.context?.type) {
                         rollRequirements.pf2e_restrict_passed = true
                     } else {
                         rollRequirements.pf2e_restrict_passed = false
@@ -268,7 +283,7 @@ class RollTracker {
         })            
         if (chatMessage.isContentVisible) await RollTrackerHelper.waitFor3DDiceMessage(chatMessage.id)
         if (checksPassed) {
-            RollTrackerData.createTrackedRoll(chatMessage.user, chatMessage.roll, isBlind)
+            RollTrackerData.createTrackedRoll(chatMessage.user, chatMessage.rolls[0], isBlind)
         }
     }
 }
@@ -365,17 +380,19 @@ class RollTrackerData {
                         // only to the GM (as it may reveal earlier rolls).
                         // Alternatively, if the setting to make streak messages always hidden is enabled, transmit it only
                         // to the GM
-                        const streakHidden = game.settings.get(RollTracker.ID, RollTracker.SETTINGS.STREAK_MESSAGE_HIDDEN)
-                        if (isBlind || streak.includesBlind || streakHidden) {
-                            chatOpts.whisper = true
+                        const streakStatus = game.settings.get(RollTracker.ID, RollTracker.SETTINGS.STREAK_BEHAVIOUR)
+                        RollTracker.log(false, streakStatus)
+                        if (streakStatus !== 'disable') {
+                            if (isBlind || streak.includesBlind || streakStatus === `hidden`) {
+                                chatOpts.whisper = true
+                            }
+                            if (!game.user.isGM) {
+                                game.socket.emit("module.roll-tracker", chatOpts)
+                            } else {
+                                chatOpts.whisper = [game.userId]
+                                ChatMessage.create(chatOpts)
+                            }
                         }
-                        if (!game.user.isGM) {
-                            socket.emit("module.roll-tracker", chatOpts)
-                        } else {
-                            chatOpts.whisper = [game.userId]
-                            ChatMessage.create(chatOpts)
-                        }
-
                     }
                     game.users.get(user.id)?.setFlag(RollTracker.ID, RollTracker.FLAGS.STREAK, streak)
 
