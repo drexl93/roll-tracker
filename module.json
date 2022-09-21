@@ -7,9 +7,9 @@
       "flags": {}
     }
   ],
-    "version": "1.5.1",
+    "version": "1.5.2",
     "minimumCoreVersion": "9.0.0",
-    "compatibleCoreVersion": "9.0.0",
+    "compatibleCoreVersion": "10.0.0",
     "scripts": [
         "scripts/roll-tracker.js"
     ],
@@ -31,6 +31,6 @@
   "id": "roll-tracker",
   "compatibility": {
     "minimum": "9.0.0",
-    "verified": "9.0.0"
+    "verified": "10.0.0"
   }
 }
