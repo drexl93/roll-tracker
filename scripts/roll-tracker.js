@@ -83,7 +83,7 @@ Hooks.once('init', () => {
 Hooks.once('ready', () => {
     game.socket.on("module.roll-tracker", (data) => {
         if (game.user.isGM) {
-            if (data.whisper === true) data.whisper = [game.userId]
+            // if (data.whisper === true) data.whisper = [game.userId]
             ChatMessage.create(data)
         }
     }) 
@@ -195,15 +195,6 @@ class RollTracker {
             scope: 'world',
             config: true,
             hint: `ROLL-TRACKER.settings.${this.SETTINGS.COUNT_HIDDEN}.Hint`,
-        })
-
-        game.settings.register(this.ID, this.SETTINGS.STREAK_MESSAGE_HIDDEN, {
-            name: `ROLL-TRACKER.settings.${this.SETTINGS.STREAK_MESSAGE_HIDDEN}.Name`,
-            default: true,
-            type: Boolean,
-            scope: 'world',
-            config: true,
-            hint: `ROLL-TRACKER.settings.${this.SETTINGS.STREAK_MESSAGE_HIDDEN}.Hint`,
         })
 
         game.settings.register(this.ID, this.SETTINGS.STREAK_BEHAVIOUR, {
@@ -376,20 +367,22 @@ class RollTrackerData {
                             content: `<strong>${user.name} is on a streak!</strong> </br> ${streakString}`, speaker: {alias: 'Roll Tracker'}
                         }
 
-                        // If the current roll is blind, or the last roll was blind, the streak message should be transmitted
-                        // only to the GM (as it may reveal earlier rolls).
-                        // Alternatively, if the setting to make streak messages always hidden is enabled, transmit it only
-                        // to the GM
+                        // Follow the game setting concerning the visibility of streak messages
+                        //
+                        // If the current roll is blind, or the last roll was blind, the streak message (if generated)
+                        // is only whispered to the GM, as it may reveal earlier blind rolls
                         const streakStatus = game.settings.get(RollTracker.ID, RollTracker.SETTINGS.STREAK_BEHAVIOUR)
-                        RollTracker.log(false, streakStatus)
                         if (streakStatus !== 'disable') {
                             if (isBlind || streak.includesBlind || streakStatus === `hidden`) {
-                                chatOpts.whisper = true
+                                RollTracker.log(false, "hide this!")
+                                const gm = game.users.filter(user => user.isGM === true)
+                                chatOpts.whisper = gm
                             }
                             if (!game.user.isGM) {
+                                RollTracker.log(false, "not a GM!")
                                 game.socket.emit("module.roll-tracker", chatOpts)
                             } else {
-                                chatOpts.whisper = [game.userId]
+                                RollTracker.log(false, "is a GM!")
                                 ChatMessage.create(chatOpts)
                             }
                         }
@@ -436,12 +429,13 @@ class RollTrackerData {
         let stats = {}
 
         if (!printRolls) {
-            stats.mean = 0
-            stats.median = 0
+            stats.mean = 0,
+            stats.median = 0,
             stats.mode = [0],
             stats.comparator = 0,
             stats.nat1s = 0,
-            stats.nat20s = 0
+            stats.nat20s = 0,
+            stats.count = 0
         } else {
             stats = await this.calculate(printRolls)
             // For debugging purposes primarily:
@@ -500,6 +494,9 @@ class RollTrackerData {
         const nat1s = modeObj[1] || 0
         const nat20s = modeObj[20] || 0        
 
+    // How many rolls are being counted?
+        const count = rolls.length
+
         return {
             mean,
             median,
@@ -507,6 +504,7 @@ class RollTrackerData {
             comparator,
             nat1s,
             nat20s,
+            count
         }
     }
 

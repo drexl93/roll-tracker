@@ -7,6 +7,7 @@
         "form-label-nat1s": "Nat 1s",
         "form-label-nat20s": "Nat 20s",
         "form-label-lastRoll": "Last roll",
+        "form-label-count": "Rolls Counted",
         "form-button-clear": "Clear Data",
         "form-button-download": "Download",
         "form-button-print": "Print to Chat",
@@ -37,16 +38,12 @@
                 "Name" : "Count Blind Rolls?",
                 "Hint" : "If disabled, blind rolls for players will not be counted in the tracker."
             },
-            "streak_message_hidden": {
-                "Name" : "Always Hide Streak Message?",
-                "Hint" : "If enabled, streak notification messages are always whispered to the GM, who may choose to reveal them."
-            },
             "streak_behaviour": {
                 "Name" : "Streak Behaviour",
-                "Hint" : "Choose whether to disable streak messages, send them only to the GM, or show them publicly.",
+                "Hint" : "Choose whether to disable streak messages, send them only to the GM, or show them publicly. Note: streaks that include a blind roll are always whispered to the GM.",
                 "disable": "Disable Streak Messages",
                 "hidden": "Whisper Streaks to GM",
-                "shown": "Send Streaks to public chat"
+                "shown": "Publicly display Streaks"
             },
             "dnd5e": {
                 "restrict_counted_rolls": {
