@@ -83,7 +83,6 @@ Hooks.once('init', () => {
 Hooks.once('ready', () => {
     game.socket.on("module.roll-tracker", (data) => {
         if (game.user.isGM) {
-            // if (data.whisper === true) data.whisper = [game.userId]
             ChatMessage.create(data)
         }
     }) 
@@ -109,7 +108,7 @@ class RollTracker {
         SORTED: 'sorted',
         EXPORT: 'export',
         UNSORTED: 'unsorted',
-        STREAK: 'streak'
+        STREAK: 'streak',
     }
 
     static TEMPLATES = {
@@ -312,7 +311,7 @@ class RollTrackerData {
             sorted: game.users.get(userId)?.getFlag(RollTracker.ID, RollTracker.FLAGS.SORTED),
             unsorted: game.users.get(userId)?.getFlag(RollTracker.ID, RollTracker.FLAGS.UNSORTED),
             export: game.users.get(userId)?.getFlag(RollTracker.ID, RollTracker.FLAGS.EXPORT),
-            streak: game.users.get(userId)?.getFlag(RollTracker.ID, RollTracker.FLAGS.STREAK)
+            streak: game.users.get(userId)?.getFlag(RollTracker.ID, RollTracker.FLAGS.STREAK),
         } 
         return output
     }
@@ -373,26 +372,33 @@ class RollTrackerData {
                         // is only whispered to the GM, as it may reveal earlier blind rolls
                         const streakStatus = game.settings.get(RollTracker.ID, RollTracker.SETTINGS.STREAK_BEHAVIOUR)
                         if (streakStatus !== 'disable') {
-                            if (isBlind || streak.includesBlind || streakStatus === `hidden`) {
-                                RollTracker.log(false, "hide this!")
-                                const gm = game.users.filter(user => user.isGM === true)
-                                chatOpts.whisper = gm
+                            if (streak.includesBlind || streakStatus === `hidden`) {
+                                const gms = game.users.filter(user => user.isGM === true)
+                                chatOpts.whisper = gms.map(gm => gm.id)
                             }
                             if (!game.user.isGM) {
-                                RollTracker.log(false, "not a GM!")
                                 game.socket.emit("module.roll-tracker", chatOpts)
                             } else {
-                                RollTracker.log(false, "is a GM!")
                                 ChatMessage.create(chatOpts)
                             }
                         }
                     }
-                    game.users.get(user.id)?.setFlag(RollTracker.ID, RollTracker.FLAGS.STREAK, streak)
-
                 } else {
-                    game.users.get(user.id)?.unsetFlag(RollTracker.ID, RollTracker.FLAGS.STREAK)
+                    // If the last rolled number is not within 1 of the current rolled number, discard
+                    // the streak
+                    streak.numbers = []
+
+                    // If there is no current streak but the current current roll is blind, a potential future
+                    // streak includes a blind number.
+                    // However if there is no current streak and the current roll is NOT blind, reset the
+                    // variable tracking the presence of a blind roll in the streak
+                    if (isBlind) {
+                        streak.includesBlind = true
+                    } else {
+                        streak.includesBlind = false
+                    }
                 }
-                
+                game.users.get(user.id)?.setFlag(RollTracker.ID, RollTracker.FLAGS.STREAK, streak)
             } else {
                 updatedRolls = newNumbers
                 oldUnsorted = newNumbers
@@ -410,7 +416,7 @@ class RollTrackerData {
             game.users.get(userId)?.unsetFlag(RollTracker.ID, RollTracker.FLAGS.SORTED), 
             game.users.get(userId)?.unsetFlag(RollTracker.ID, RollTracker.FLAGS.EXPORT),
             game.users.get(userId)?.unsetFlag(RollTracker.ID, RollTracker.FLAGS.UNSORTED),
-            game.users.get(userId)?.unsetFlag(RollTracker.ID, RollTracker.FLAGS.STREAK)
+            game.users.get(userId)?.unsetFlag(RollTracker.ID, RollTracker.FLAGS.STREAK),
         ])
     }
 
