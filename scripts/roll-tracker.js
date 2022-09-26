@@ -665,11 +665,19 @@ class RollTrackerData {
                 finalComparison[statName].highest.userId = `${user}`
                 finalComparison[statName].highest.name = game.users.get(`${user}`)?.name
                 finalComparison[statName].highest.value = allStats[`${user}`][statName]
+                finalComparison[statName].highest.rolls = allStats[`${user}`].count
+                if (statName === "nat1s" || "nat20s" ) {
+                    finalComparison[statName].highest.percentage = Math.round((((finalComparison[statName].highest.value) / (finalComparison[statName].highest.rolls))) * 100)
+                }
             }
             for (let user of statObj.bot) {
                 finalComparison[statName].lowest.userId = `${user}`
                 finalComparison[statName].lowest.name = game.users.get(`${user}`)?.name
                 finalComparison[statName].lowest.value = allStats[`${user}`][statName]
+                finalComparison[statName].lowest.rolls = allStats[`${user}`].count
+                if (statName === "nat1s" || "nat20s" ) {
+                    finalComparison[statName].lowest.percentage = Math.round((((finalComparison[statName].lowest.value) / (finalComparison[statName].lowest.rolls))) * 100)
+                }
             }
             finalComparison[statName].average = statObj.average
     }
@@ -757,6 +765,7 @@ class RollTrackerDialog extends FormApplication {
     // This function gets the header data from FormApplication but modifies it to add our export button
     _getHeaderButtons() {
         let buttons = super._getHeaderButtons();
+        RollTracker.log(false, buttons)
         buttons.splice(0, 0, {
             class: "roll-tracker-form-export",
             icon: "fas fa-download",
@@ -773,7 +782,6 @@ class RollTrackerDialog extends FormApplication {
                 class: "roll-tracker-form-comparison",
                 icon: "fas fa-chart-simple",
                 onclick: ev => {
-                    RollTracker.log(false, this)
                     this.prepCompCard()
                 }
             })

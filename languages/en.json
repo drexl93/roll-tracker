@@ -18,18 +18,17 @@
             "download": "Download",
             "print": "Print to Chat"
         },
-        "chat-message": {
-            "highest-mean": "Highest mean held by",
-            "highest-median": "Highest median held by",
-            "highest-mode": "Highest mode held by",
-            "highest-nat1s": "Highest nat1s held by",
-            "highest-nat20s": "Highest nat20s held by",
-            "lowest-mean": "Lowest mean held by",
-            "lowest-median": "Lowest median held by",
-            "lowest-mode": "Lowest mode held by",
-            "lowest-nat1s": "Lowest nat1s held by",
-            "lowest-nat20s": "Lowest nat20s held by",
-            "with": "with" 
+        "comparison-card": {
+            "title": "Comparison Card",
+            "mean-header": "Mean",
+            "median-header": "Median",
+            "nat1s-header": "Nat1s",
+            "nat20s-header": "Nat20s",
+            "highest": "Highest",
+            "lowest": "Lowest",
+            "with": "with",
+            "of": "of",
+            "rolls": "rolls"
         },
         "settings": {
             "gm_see_players": {

@@ -20,5 +20,33 @@
 .roll-tracker-form-heading {
     font-size: large;
     font-weight: bold;
-    margin: 0
+    margin: 0 0 0.4rem
+}
+
+.roll-tracker-comparison-card-heading {
+    font-size: large;
+    font-weight: bold;
+    margin: 0 0 0.6rem
+}
+
+.roll-tracker-comparison-card-stat-heading {
+    text-decoration: underline;
+    margin: 0.2em;
+    font-size: 1.15em;
+}
+
+.roll-tracker-comparison-card-strong {
+    font-weight: bold;
+}
+
+.roll-tracker-comparison-card-italics {
+    font-style: italic;
+}
+
+.roll-tracker.roll-tracker-comparison-card-ul {
+    margin: 0;
+}
+
+.roll-tracker-comparison-card-li {
+    list-style-type: square;
 }
