@@ -1,0 +1,16 @@
+{{!-- {{log 'Input data' this}} --}}
+<form>
+    <div class="roll-tracker-form flexcol" data-userId="{{thisUserId}}">
+        <h1 class="roll-tracker-form-heading">{{username}}</h1>
+       <ul class="roll-tracker-form flexcol">
+            <li><span class="roll-tracker-form stat">{{localize "ROLL-TRACKER.chat-message.highest-mean"}} </span>{{mean.highest.name}} {{localize "ROLL-TRACKER.chat-message.with"}} {{mean.highest.value}}</li>
+            <li><span class="roll-tracker-form stat">{{localize "ROLL-TRACKER.chat-message.lowest-mean"}} </span>{{mean.lowest.name}} {{localize "ROLL-TRACKER.chat-message.with"}} {{mean.lowest.value}}</li>
+            <li><span class="roll-tracker-form stat">{{localize "ROLL-TRACKER.chat-message.highest-median"}} </span>{{median.highest.name}} {{localize "ROLL-TRACKER.chat-message.with"}} {{median.highest.value}}</li>
+            <li><span class="roll-tracker-form stat">{{localize "ROLL-TRACKER.chat-message.lowest-median"}} </span>{{median.lowest.name}} {{localize "ROLL-TRACKER.chat-message.with"}} {{median.lowest.value}}</li>
+            <li><span class="roll-tracker-form stat">{{localize "ROLL-TRACKER.chat-message.highest-nat1s"}} </span>{{nat1s.highest.name}} {{localize "ROLL-TRACKER.chat-message.with"}} {{nat1s.highest.value}}</li>
+            <li><span class="roll-tracker-form stat">{{localize "ROLL-TRACKER.chat-message.lowest-nat1s"}} </span>{{nat1s.lowest.name}} {{localize "ROLL-TRACKER.chat-message.with"}} {{nat1s.lowest.value}}</li>
+            <li><span class="roll-tracker-form stat">{{localize "ROLL-TRACKER.chat-message.highest-nat20s"}} </span>{{nat20s.highest.name}} {{localize "ROLL-TRACKER.chat-message.with"}} {{nat20s.highest.value}}</li>
+            <li><span class="roll-tracker-form stat">{{localize "ROLL-TRACKER.chat-message.lowest-nat20s"}} </span>{{nat20s.lowest.name}} {{localize "ROLL-TRACKER.chat-message.with"}} {{nat20s.lowest.value}}</li>
+        </ul>
+    </div>
+</form>

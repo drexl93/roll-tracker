@@ -113,7 +113,8 @@ class RollTracker {
 
     static TEMPLATES = {
         ROLLTRACK: `modules/${this.ID}/templates/${this.ID}.hbs`,
-        CHATMSG: `modules/${this.ID}/templates/${this.ID}-chat.hbs`
+        CHATMSG: `modules/${this.ID}/templates/${this.ID}-chat.hbs`,
+        COMPARISONCARD: `modules/${this.ID}/templates/${this.ID}-comparison-card.hbs`
     }
 
     // This logging function ties in with the Developer Mode module. It will log a custom, module namespaced
@@ -559,6 +560,7 @@ class RollTrackerData {
      * This function is meant to generate an overall picture across all players of rankings in the
      * various stats. Fully functional, but not accessible in the UI yet. Code exists to make the 
      * averages display alongside the individual player numbers in the tracking card but I didn't like that
+     * **/
     
 
     static async generalComparison() {
@@ -571,7 +573,7 @@ class RollTrackerData {
         }
         // highest/lowest of
 
-            const modes = await this.statsCompare(allStats, 'comparator')
+            // const modes = await this.statsCompare(allStats, 'comparator')
             const means = await this.statsCompare(allStats, 'mean')
             const medians = await this.statsCompare(allStats, 'median')
             const nat1s = await this.statsCompare(allStats, 'nat1s')
@@ -582,40 +584,35 @@ class RollTrackerData {
             this.prepStats(finalComparison, 'median', medians, allStats)
             this.prepStats(finalComparison, 'nat1s', nat1s, allStats)
             this.prepStats(finalComparison, 'nat20s', nat20s, allStats)
-            this.prepStats(finalComparison, 'mode', modes, allStats)
+            // this.prepStats(finalComparison, 'mode', modes, allStats)
 
             // Mode specific calculations. 
             // When displaying "highest" mode and "lowest" mode, if that player has multiple modes, pick the highest
             // or lowest respectively.
-            for (let user in finalComparison.mode.highest) {
-                finalComparison.mode.highest[user] = { value: finalComparison.mode.highest[user].at(-1), comparator: allStats[user].comparator }
-            }
-            for (let user in finalComparison.mode.lowest) {
-                finalComparison.mode.lowest[user] = { value: finalComparison.mode.lowest[user].at(0), comparator: allStats[user].comparator }
-            }
+            
+            // finalComparison.mode.highest.value = { value: finalComparison.mode.highest.value.at(-1), comparator: allStats[finalComparison.mode.highest.userId].comparator }
+            // finalComparison.mode.lowest.value = { value: finalComparison.mode.lowest.value.at(-1), comparator: allStats[finalComparison.mode.lowest.userId].comparator }
 
-            // The average mode across players should be the mode of modes
-            let newModeObj = {}
-            for (let user in allStats) {
-                for (let i = 1; i <= allStats[user].comparator; i++) {
-                    allStats[user].mode.forEach(e => {
-                        if (newModeObj[e]) newModeObj[e]++
-                        else (newModeObj[e] = 1)
-                    })
-                }
-            }
+            // // The average mode across players should be the mode of modes
+            // let newModeObj = {}
+            // for (let user in allStats) {
+            //     for (let i = 1; i <= allStats[user].comparator; i++) {
+            //         allStats[user].mode.forEach(e => {
+            //             if (newModeObj[e]) newModeObj[e]++
+            //             else (newModeObj[e] = 1)
+            //         })
+            //     }
+            // }
 
-            RollTracker.log(false, 'newmodeobj', newModeObj)
-
-            let avmodeComparator = 0
-            for (let number in newModeObj) {
-                if (newModeObj[number] > avmodeComparator) {
-                    avmodeComparator = newModeObj[number]
-                    finalComparison.mode.average = [number]
-                } else if (newModeObj[number] === avmodeComparator) {
-                    finalComparison.mode.average.push(newModeObj[number])
-                }
-            }
+            // let avmodeComparator = 0
+            // for (let number in newModeObj) {
+            //     if (newModeObj[number] > avmodeComparator) {
+            //         avmodeComparator = newModeObj[number]
+            //         finalComparison.mode.average = [number]
+            //     } else if (newModeObj[number] === avmodeComparator) {
+            //         finalComparison.mode.average.push(newModeObj[number])
+            //     }
+            // }
 
             return finalComparison
     } 
@@ -665,16 +662,18 @@ class RollTrackerData {
             finalComparison[statName].highest = {}
             finalComparison[statName].lowest = {}
             for (let user of statObj.top) {
-                finalComparison[statName].highest[`${user}`] = allStats[`${user}`][statName]
+                finalComparison[statName].highest.userId = `${user}`
+                finalComparison[statName].highest.name = game.users.get(`${user}`)?.name
+                finalComparison[statName].highest.value = allStats[`${user}`][statName]
             }
             for (let user of statObj.bot) {
-                finalComparison[statName].lowest[`${user}`] = allStats[`${user}`][statName]
+                finalComparison[statName].lowest.userId = `${user}`
+                finalComparison[statName].lowest.name = game.users.get(`${user}`)?.name
+                finalComparison[statName].lowest.value = allStats[`${user}`][statName]
             }
-            if (statName !== 'mode') finalComparison[statName].average = statObj.average
+            finalComparison[statName].average = statObj.average
     }
 
-    * **
-    */
 }
 
 class RollTrackerDialog extends FormApplication {
@@ -708,6 +707,12 @@ class RollTrackerDialog extends FormApplication {
         // rollData.averages.mode = modeString_averages
 
         return rollData
+    }
+
+    async prepCompCard() {
+        let comparison = await RollTrackerData.generalComparison()
+        let content = await renderTemplate(RollTracker.TEMPLATES.COMPARISONCARD, comparison)
+        ChatMessage.create( { content } )
     }
 
     activateListeners(html) {
@@ -763,6 +768,16 @@ class RollTrackerDialog extends FormApplication {
                 }
             }
         })
+        if (game.user.isGM) {
+            buttons.splice(1, 0, {
+                class: "roll-tracker-form-comparison",
+                icon: "fas fa-chart-simple",
+                onclick: ev => {
+                    RollTracker.log(false, this)
+                    this.prepCompCard()
+                }
+            })
+        }
         return buttons
     }
 
