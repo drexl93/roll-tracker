@@ -22,9 +22,26 @@
             "title": "Comparison Card",
             "mean-header": "Mean",
             "median-header": "Median",
-            "mode-header": "Mode",
-            "nat1s-header": "Natural 1s",
-            "nat20s-header": "Natural 20s",
+            "mode": {
+                "header": "Mode",
+                "raw-numbers": "By raw numbers,",
+                "most-frequent": "had the most frequent mode with",
+                "instances-of": "instances of",
+                "percentage": "By percentage,",
+                "of-their-rolls": "of their rolls being"
+            },
+            "nat1s": {
+                "header": "Natural 1s",
+                "raw-numbers": "By raw numbers,",
+                "most": "had the most natural 1s with",
+                "percentage": "By percentage of their total rolls,"
+            },
+            "nat20s": {
+                "header": "Natural 20s",
+                "raw-numbers": "By raw numbers,",
+                "most": "had the most natural 20s with",
+                "percentage": "By percentage of their total rolls,"
+            },
             "highest": "Highest",
             "lowest": "Lowest",
             "with": "with",

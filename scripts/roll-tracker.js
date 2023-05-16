@@ -94,11 +94,29 @@ Handlebars.registerHelper('isOne', function (value) {
     return value === 1;
 });
 
-// Just a helper handlebars function so for our "Mode" line in the FormApp, if there is more than 1 
-// mode, the text will read ".... instances *each*" as opposed to "... instances" 
-Handlebars.registerHelper('isMultimodal', function (value) {
+Handlebars.registerHelper('isTwo', function (value) {
+    return value === 2;
+});
+
+Handlebars.registerHelper('isThreePlus', function (value) {
+    return value > 2;
+});
+
+// To help us properly display ties in statistics 
+Handlebars.registerHelper('isTie', function (value) {
     return value.length > 1;
 });
+
+// To help us properly display ties in statistics 
+Handlebars.registerHelper('isLast', function (index, length) {
+    if (length - index === 1) return true
+});
+
+// To help us properly display ties in statistics 
+Handlebars.registerHelper('isSecondLast', function (index, length) {
+    if (length - index === 2) return true
+});
+
 
 // Store basic module info
 class RollTracker { 
@@ -441,7 +459,9 @@ class RollTrackerData {
             stats.mode = [0],
             stats.comparator = 0,
             stats.nat1s = 0,
+            stats.nat1sPercentage = 0,
             stats.nat20s = 0,
+            stats.nat20sPercentage = 0,
             stats.count = 0
         } else {
             stats = await this.calculate(printRolls)
@@ -492,7 +512,9 @@ class RollTrackerData {
 
     // How many Nat1s or Nat20s do we have?
         const nat1s = modeObj[1] || 0
+        const nat1sPercentage = (Math.round((nat1s / rolls.length) * 100))
         const nat20s = modeObj[20] || 0        
+        const nat20sPercentage = (Math.round((nat20s / rolls.length) * 100))
 
     // How many rolls are being counted?
         const count = rolls.length
@@ -503,7 +525,9 @@ class RollTrackerData {
             mode,
             comparator,
             nat1s,
+            nat1sPercentage,
             nat20s,
+            nat20sPercentage,
             count
         }
     }
@@ -570,13 +594,16 @@ class RollTrackerData {
             const means = await this.statsCompare(allStats, 'mean')
             const medians = await this.statsCompare(allStats, 'median')
             const nat1s = await this.statsCompare(allStats, 'nat1s')
+            const nat1sPercentage = await this.statsCompare(allStats, 'nat1sPercentage')
             const nat20s = await this.statsCompare(allStats, 'nat20s')
-
+            const nat20sPercentage = await this.statsCompare(allStats, 'nat20sPercentage')
             let finalComparison = {}
             this.prepStats(finalComparison, 'mean', means, allStats)
             this.prepStats(finalComparison, 'median', medians, allStats)
             this.prepStats(finalComparison, 'nat1s', nat1s, allStats)
+            this.prepStats(finalComparison, 'nat1sPercentage', nat1sPercentage, allStats)
             this.prepStats(finalComparison, 'nat20s', nat20s, allStats)
+            this.prepStats(finalComparison, 'nat20sPercentage', nat20sPercentage, allStats)
             this.prepMode(finalComparison, 'comparator', comparators, allStats)
 
             // Mode specific calculations. 
@@ -663,27 +690,29 @@ class RollTrackerData {
     // using previously calculated stats
 
     static async prepStats(finalComparison, statName, statObj, allStats) {
+
         finalComparison[statName] = {}
-            finalComparison[statName].highest = {}
-            finalComparison[statName].lowest = {}
+            finalComparison[statName].highest = []
+            finalComparison[statName].lowest = []
+
             for (let user of statObj.top) {
-                finalComparison[statName].highest.userId = `${user}`
-                finalComparison[statName].highest.name = game.users.get(`${user}`)?.name
-                finalComparison[statName].highest.value = allStats[`${user}`][statName]
-                finalComparison[statName].highest.rolls = allStats[`${user}`].count
-                if (statName === "nat1s" || "nat20s" ) {
-                    finalComparison[statName].highest.percentage = Math.round((((finalComparison[statName].highest.value) / (finalComparison[statName].highest.rolls))) * 100)
-                }
+                const userStats = {}
+                userStats.userId = `${user}`
+                userStats.name = game.users.get(`${user}`)?.name
+                userStats.value = allStats[`${user}`][statName]
+                userStats.rolls = allStats[`${user}`].count
+                finalComparison[statName].highest.push(userStats)
             }
+
             for (let user of statObj.bot) {
-                finalComparison[statName].lowest.userId = `${user}`
-                finalComparison[statName].lowest.name = game.users.get(`${user}`)?.name
-                finalComparison[statName].lowest.value = allStats[`${user}`][statName]
-                finalComparison[statName].lowest.rolls = allStats[`${user}`].count
-                if (statName === "nat1s" || "nat20s" ) {
-                    finalComparison[statName].lowest.percentage = Math.round((((finalComparison[statName].lowest.value) / (finalComparison[statName].lowest.rolls))) * 100)
-                }
+                const userStats = {}
+                userStats.userId = `${user}`
+                userStats.name = game.users.get(`${user}`)?.name
+                userStats.value = allStats[`${user}`][statName]
+                userStats.rolls = allStats[`${user}`].count
+                finalComparison[statName].lowest.push(userStats)
             }
+
             finalComparison[statName].average = statObj.average
     }
 
@@ -807,7 +836,6 @@ class RollTrackerDialog extends FormApplication {
     // This function gets the header data from FormApplication but modifies it to add our export button
     _getHeaderButtons() {
         let buttons = super._getHeaderButtons();
-        RollTracker.log(false, buttons)
         buttons.splice(0, 0, {
             class: "roll-tracker-form-export",
             icon: "fas fa-download",

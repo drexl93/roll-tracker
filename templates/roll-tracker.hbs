@@ -6,7 +6,7 @@
             <li><span class="roll-tracker-form stat">{{localize "ROLL-TRACKER.form-label.mean"}}: </span>{{stats.mean}}</li>
             <li><span class="roll-tracker-form stat">{{localize "ROLL-TRACKER.form-label.median"}}: </span>{{stats.median}}</li>
             <li><span class="roll-tracker-form stat">{{localize "ROLL-TRACKER.form-label.mode"}} ({{stats.comparator}}
-                {{#if (isOne stats.comparator)}} instance{{else}} instances{{/if}}{{#if (isMultimodal stats.mode)}} each{{/if}}): </span>{{stats.mode}}</li>
+                {{#if (isOne stats.comparator)}} instance{{else}} instances{{/if}}{{#if (isTie stats.mode)}} each{{/if}}): </span>{{stats.mode}}</li>
             <li><span class="roll-tracker-form stat">{{localize "ROLL-TRACKER.form-label.nat1s"}}: </span>{{stats.nat1s}}</li>
             <li><span class="roll-tracker-form stat">{{localize "ROLL-TRACKER.form-label.nat20s"}}: </span>{{stats.nat20s}}</li>
             {{#if stats.lastRoll}} <li><span class="roll-tracker-form stat">{{localize "ROLL-TRACKER.form-label.lastRoll"}}: </span>{{stats.lastRoll}}</li> {{/if}}
