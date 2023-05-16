@@ -24,6 +24,17 @@
                 <span class="roll-tracker-comparison-card-strong">{{median.lowest.name}}</span> {{localize "ROLL-TRACKER.comparison-card.with"}} {{median.lowest.value}} ({{median.lowest.rolls}} {{localize "ROLL-TRACKER.comparison-card.rolls"}})
             </li>
         </ul>
+        <h3 class="roll-tracker-comparison-card-stat-heading">{{localize "ROLL-TRACKER.comparison-card.mode-header"}}</h3>
+        <ul class="roll-tracker-comparison-card-ul">
+            <li class="roll-tracker-comparison-card-li">
+                By raw numbers, <span class="roll-tracker-comparison-card-strong">{{comparator.highest.name}}</span> had the most frequent mode with 
+                {{comparator.highest.value}} instances of {{comparator.highest.mode}}.
+            </li>
+            <li class="roll-tracker-comparison-card-li">
+                By percentage, <span class="roll-tracker-comparison-card-strong">{{comparator.highestPercentage.name}}</span> had the most frequent mode with 
+                {{comparator.highestPercentage.percentage}}% ({{comparator.highestPercentage.value}}) of their rolls being {{comparator.highestPercentage.mode}}.
+            </li>
+        </ul>
         <h3 class="roll-tracker-comparison-card-stat-heading">{{localize "ROLL-TRACKER.comparison-card.nat1s-header"}}</h3>
         <ul class="roll-tracker-comparison-card-ul">
             <li class="roll-tracker-comparison-card-li">

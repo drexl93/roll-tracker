@@ -22,6 +22,7 @@
             "title": "Comparison Card",
             "mean-header": "Mean",
             "median-header": "Median",
+            "mode-header": "Mode",
             "nat1s-header": "Natural 1s",
             "nat20s-header": "Natural 20s",
             "highest": "Highest",

@@ -246,7 +246,7 @@ class RollTracker {
     static async parseMessage(chatMessage, system) {
         const isBlind = chatMessage.blind
         const rollRequirements = {
-            isd20: chatMessage.rolls[0]?.dice[0].faces === 20,
+            isd20: chatMessage.rolls[0]?.dice[0]?.faces === 20,
             blindCheck: (!isBlind) || (isBlind && game.settings.get(this.ID, this.SETTINGS.COUNT_HIDDEN)) || (isBlind && chatMessage.rolls[0]?.roller.isGM),
         }
         switch (system) {
@@ -448,13 +448,6 @@ class RollTrackerData {
             // For debugging purposes primarily:
             // stats.lastRoll = this.getUserRolls(userId)?.unsorted.at(-1)
         }
-
-        // DISABLED CODING TO COLLECT AND DISPLAY AVERAGES ACROSS PLAYERS
-        // const genComp = await this.generalComparison()
-        // let averages = {}
-        // for (let stat in genComp) {
-        //     averages[stat] = genComp[stat].average
-        // }
         
         return { username, thisUserId, stats 
             /**, averages */ }
@@ -556,7 +549,7 @@ class RollTrackerData {
     }
 
     /**
-     *  FUNCTIONAL BUT NOT YET IMPLEMENTED IN UI
+     *  COMPARATOR
      * This function is meant to generate an overall picture across all players of rankings in the
      * various stats. Fully functional, but not accessible in the UI yet. Code exists to make the 
      * averages display alongside the individual player numbers in the tracking card but I didn't like that
@@ -573,7 +566,7 @@ class RollTrackerData {
         }
         // highest/lowest of
 
-            // const modes = await this.statsCompare(allStats, 'comparator')
+            const comparators = await this.statsCompare(allStats, 'comparator')
             const means = await this.statsCompare(allStats, 'mean')
             const medians = await this.statsCompare(allStats, 'median')
             const nat1s = await this.statsCompare(allStats, 'nat1s')
@@ -584,11 +577,11 @@ class RollTrackerData {
             this.prepStats(finalComparison, 'median', medians, allStats)
             this.prepStats(finalComparison, 'nat1s', nat1s, allStats)
             this.prepStats(finalComparison, 'nat20s', nat20s, allStats)
-            // this.prepStats(finalComparison, 'mode', modes, allStats)
+            this.prepMode(finalComparison, 'comparator', comparators, allStats)
 
             // Mode specific calculations. 
-            // When displaying "highest" mode and "lowest" mode, if that player has multiple modes, pick the highest
-            // or lowest respectively.
+            // We are interested in the most numerous number rolled by a player, both as a raw number
+            // and as a percentage of their total rolls
             
             // finalComparison.mode.highest.value = { value: finalComparison.mode.highest.value.at(-1), comparator: allStats[finalComparison.mode.highest.userId].comparator }
             // finalComparison.mode.lowest.value = { value: finalComparison.mode.lowest.value.at(-1), comparator: allStats[finalComparison.mode.lowest.userId].comparator }
@@ -622,34 +615,46 @@ class RollTrackerData {
     // generated in the allStats variable of generalComparison()
     // Don't use this for MODE - it will not work, as modes are stored as arrays and compared
     // differently. To find the highest/lowest mode among players, run this func with 'comparator'
-    static async statsCompare(obj, stat) {
+    static async statsCompare(allStats, stat) {
         let topStat = -1;
         let comparison = {}
-            for (let user in obj) {
-                if (obj[`${user}`][stat] > topStat) {
-                    topStat = obj[`${user}`][stat]
+            for (let user in allStats) {
+                if (allStats[`${user}`][stat] > topStat) {
+                    topStat = allStats[`${user}`][stat]
                     comparison.top = [user]
-                } else if (obj[`${user}`][stat] === topStat) {
+                } else if (allStats[`${user}`][stat] === topStat) {
                     comparison.top.push(user)
                 }
             }
 
-        let botStat = 9999;
-            for (let user in obj) {
-                if (obj[`${user}`][stat] < botStat) {
-                    botStat = obj[`${user}`][stat]
-                    comparison.bot = [user]
-                } else if (obj[`${user}`][stat] === botStat) {
-                    comparison.bot.push(user)
+        if (stat !== 'comparator') {
+            let botStat = 9999;
+                for (let user in allStats) {
+                    if (allStats[`${user}`][stat] < botStat) {
+                        botStat = allStats[`${user}`][stat]
+                        comparison.bot = [user]
+                    } else if (allStats[`${user}`][stat] === botStat) {
+                        comparison.bot.push(user)
+                    }
                 }
-            }
 
-        let statSum = 0
-            for (let user in obj) {
-                statSum += obj[`${user}`][stat]
+            let statSum = 0
+            for (let user in allStats) {
+                statSum += allStats[`${user}`][stat]
             }
-
-        comparison.average = Math.round(statSum / (Object.keys(obj).length))
+            comparison.average = Math.round(statSum / (Object.keys(allStats).length))
+        } else {
+            topStat = -1;
+                for (let user in allStats) {
+                    let percentage = Math.round(((allStats[`${user}`][stat]) / (allStats[`${user}`].count)) * 100)
+                    if (percentage > topStat) {
+                        topStat = percentage
+                        comparison.topPercentage = [user]
+                    } else if (percentage === topStat) {
+                        comparison.topPercentage.push(user)
+                    }
+                }
+        }
         
         return comparison
     }
@@ -682,6 +687,43 @@ class RollTrackerData {
             finalComparison[statName].average = statObj.average
     }
 
+    static async prepMode(finalComparison, comparator, comparators, allStats) {
+        finalComparison[comparator] = {}
+            finalComparison[comparator].highest = {}
+            for (let user of comparators.top) {
+                finalComparison[comparator].highest.userId = `${user}`
+                finalComparison[comparator].highest.name = game.users.get(`${user}`)?.name
+                const mode = allStats[`${user}`].mode
+                let modeString = mode.join(', ')
+                if (mode.length > 1) {
+                    const orPosn = modeString.lastIndexOf(',')
+                    const firstHalf = modeString.slice(0, orPosn)
+                    const secondHalf = modeString.slice(orPosn+1)
+                    modeString = firstHalf.concat(' or', secondHalf)
+                }
+                finalComparison[comparator].highest.mode = modeString
+                finalComparison[comparator].highest.value = allStats[`${user}`][comparator]
+                finalComparison[comparator].highest.rolls = allStats[`${user}`].count
+                finalComparison[comparator].highest.percentage = Math.round((((finalComparison[comparator].highest.value) / (finalComparison[comparator].highest.rolls))) * 100)
+            }
+            finalComparison[comparator].highestPercentage = {}
+            for (let user of comparators.topPercentage) {
+                finalComparison[comparator].highestPercentage.userId = `${user}`
+                finalComparison[comparator].highestPercentage.name = game.users.get(`${user}`)?.name
+                const mode = allStats[`${user}`].mode
+                let modeString = mode.join(', ')
+                if (mode.length > 1) {
+                    const orPosn = modeString.lastIndexOf(',')
+                    const firstHalf = modeString.slice(0, orPosn)
+                    const secondHalf = modeString.slice(orPosn+1)
+                    modeString = firstHalf.concat(', or', secondHalf)
+                }
+                finalComparison[comparator].highestPercentage.mode = modeString
+                finalComparison[comparator].highestPercentage.value = allStats[`${user}`][comparator]
+                finalComparison[comparator].highestPercentage.rolls = allStats[`${user}`].count
+                finalComparison[comparator].highestPercentage.percentage = Math.round((((finalComparison[comparator].highestPercentage.value) / (finalComparison[comparator].highestPercentage.rolls))) * 100)
+            }
+    }
 }
 
 class RollTrackerDialog extends FormApplication {
