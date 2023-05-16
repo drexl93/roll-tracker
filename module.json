@@ -7,7 +7,7 @@
       "flags": {}
     }
   ],
-    "version": "1.8.0",
+    "version": "1.8.1",
     "minimumCoreVersion": "10.0.0",
     "compatibleCoreVersion": "10.0.0",
     "scripts": [

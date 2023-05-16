@@ -39,14 +39,26 @@
     font-weight: bold;
 }
 
+.roll-tracker-comparison-card-goodstat {
+    color: darkgreen;
+}
+
+.roll-tracker-comparison-card-badstat {
+    color:darkred;
+}
+
 .roll-tracker-comparison-card-italics {
     font-style: italic;
 }
 
-.roll-tracker.roll-tracker-comparison-card-ul {
+.roll-tracker-comparison-card-ul {
     margin: 0;
 }
 
 .roll-tracker-comparison-card-li {
     list-style-type: square;
+}
+
+.roll-tracker-comparison-card-subli {
+    list-style-type: circle;
 }

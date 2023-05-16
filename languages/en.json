@@ -20,33 +20,30 @@
         },
         "comparison-card": {
             "title": "Comparison Card",
-            "mean-header": "Mean",
-            "median-header": "Median",
+            "headers": {
+                "mean": "Mean",
+                "median": "Median",
+                "mode": "Mode",
+                "nat1s": "Natural 1s",
+                "nat20s": "Natural 20s"
+            },
+            "descriptors": {
+                "highest": "Highest",
+                "lowest": "Lowest",
+                "most": "Most",
+                "fewest": "Fewest",
+                "raw": "Raw Numbers",
+                "percentage": "By Percentage"
+            },
+            "misc" : {
+                "and": "and",
+                "with": "with"
+            },
             "mode": {
-                "header": "Mode",
-                "raw-numbers": "By raw numbers,",
                 "most-frequent": "had the most frequent mode with",
                 "instances-of": "instances of",
-                "percentage": "By percentage,",
                 "of-their-rolls": "of their rolls being"
-            },
-            "nat1s": {
-                "header": "Natural 1s",
-                "raw-numbers": "By raw numbers,",
-                "most": "had the most natural 1s with",
-                "percentage": "By percentage of their total rolls,"
-            },
-            "nat20s": {
-                "header": "Natural 20s",
-                "raw-numbers": "By raw numbers,",
-                "most": "had the most natural 20s with",
-                "percentage": "By percentage of their total rolls,"
-            },
-            "highest": "Highest",
-            "lowest": "Lowest",
-            "with": "with",
-            "of": "of",
-            "rolls": "rolls"
+            }
         },
         "settings": {
             "gm_see_players": {

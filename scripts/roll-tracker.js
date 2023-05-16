@@ -1,9 +1,9 @@
 /** TODO: 
  * SETTINGS - CAN PLAYERS CLEAR THEIR OWN ROLLS? TREAT FORTUNE/MISFORTUNE AS ONLY THE ROLL TAKEN OR BOTH ROLLED?
  * * HAVE CHECKBOXES FOR WHAT KIND OF ROLLS ARE CONSIDERED - VERY SYSTEM SPECIFIC
- * PRINT COMPARISON CARD OF ALL PLAYERS, HIGHLIGHT BEST/WORST
- * SEPARATE BY CHARACTER?
  * SIZE OF DICE TO BE TRACKED
+ * NEW FEATURES - One click clear everyone's rolls
+ *              - Session logs - collect all the rolls for a given log in session and store it. Access past session logs, maybe you can combine them. 
  */
 
 /** QUESTIONS:
@@ -88,8 +88,8 @@ Hooks.once('ready', () => {
     }) 
 })
 
-// Just a helper handlebars function so for our "Mode" line in the FormApp, if there is exactly 1
-// instance of a mode, the text will read "instance" as opposed to "instances"
+// The following helper functions help us to make and display the right strings for chat cards and the comparison card
+// Mostly they're checking for multiple modes, or ties in the case of the comparison card
 Handlebars.registerHelper('isOne', function (value) {
     return value === 1;
 });
@@ -102,17 +102,17 @@ Handlebars.registerHelper('isThreePlus', function (value) {
     return value > 2;
 });
 
-// To help us properly display ties in statistics 
+// If the length of the input array is more than one, there is a tie (whether in mode or for a given statistic like highest mean)
 Handlebars.registerHelper('isTie', function (value) {
     return value.length > 1;
 });
 
-// To help us properly display ties in statistics 
+// To check if the current item being iterated over is the last item in the array
 Handlebars.registerHelper('isLast', function (index, length) {
     if (length - index === 1) return true
 });
 
-// To help us properly display ties in statistics 
+// To check if the current item being iterated over is the second last item in the array
 Handlebars.registerHelper('isSecondLast', function (index, length) {
     if (length - index === 2) return true
 });
@@ -510,7 +510,7 @@ class RollTrackerData {
     // ordered in modeObj
         this.prepareExportData(modeObj)
 
-    // How many Nat1s or Nat20s do we have?
+    // How many Nat1s or Nat20s do we have? Convert into % as well.
         const nat1s = modeObj[1] || 0
         const nat1sPercentage = (Math.round((nat1s / rolls.length) * 100))
         const nat20s = modeObj[20] || 0        
@@ -575,8 +575,8 @@ class RollTrackerData {
     /**
      *  COMPARATOR
      * This function is meant to generate an overall picture across all players of rankings in the
-     * various stats. Fully functional, but not accessible in the UI yet. Code exists to make the 
-     * averages display alongside the individual player numbers in the tracking card but I didn't like that
+     * various stats. Code exists to make the averages display alongside the individual player numbers
+     * in the tracking card but I didn't like that
      * **/
     
 
@@ -606,42 +606,13 @@ class RollTrackerData {
             this.prepStats(finalComparison, 'nat20sPercentage', nat20sPercentage, allStats)
             this.prepMode(finalComparison, 'comparator', comparators, allStats)
 
-            // Mode specific calculations. 
-            // We are interested in the most numerous number rolled by a player, both as a raw number
-            // and as a percentage of their total rolls
-            
-            // finalComparison.mode.highest.value = { value: finalComparison.mode.highest.value.at(-1), comparator: allStats[finalComparison.mode.highest.userId].comparator }
-            // finalComparison.mode.lowest.value = { value: finalComparison.mode.lowest.value.at(-1), comparator: allStats[finalComparison.mode.lowest.userId].comparator }
-
-            // // The average mode across players should be the mode of modes
-            // let newModeObj = {}
-            // for (let user in allStats) {
-            //     for (let i = 1; i <= allStats[user].comparator; i++) {
-            //         allStats[user].mode.forEach(e => {
-            //             if (newModeObj[e]) newModeObj[e]++
-            //             else (newModeObj[e] = 1)
-            //         })
-            //     }
-            // }
-
-            // let avmodeComparator = 0
-            // for (let number in newModeObj) {
-            //     if (newModeObj[number] > avmodeComparator) {
-            //         avmodeComparator = newModeObj[number]
-            //         finalComparison.mode.average = [number]
-            //     } else if (newModeObj[number] === avmodeComparator) {
-            //         finalComparison.mode.average.push(newModeObj[number])
-            //     }
-            // }
-
             return finalComparison
     } 
 
 
     // A general function to compare incoming 'stats' using a specific data object in the format
     // generated in the allStats variable of generalComparison()
-    // Don't use this for MODE - it will not work, as modes are stored as arrays and compared
-    // differently. To find the highest/lowest mode among players, run this func with 'comparator'
+
     static async statsCompare(allStats, stat) {
         let topStat = -1;
         let comparison = {}
@@ -716,6 +687,7 @@ class RollTrackerData {
             finalComparison[statName].average = statObj.average
     }
 
+    // Mode has its own way to be prepped as it can be multimodal etc
     static async prepMode(finalComparison, comparator, comparators, allStats) {
         finalComparison[comparator] = {}
             finalComparison[comparator].highest = {}
@@ -780,6 +752,7 @@ class RollTrackerDialog extends FormApplication {
         // string for display purposes. We choose to do the conversion to string here so that the
         // prepTrackedRolls func can continue to generate raw data which can be more easily 
         // read/compared/manipulated, as in generalComparison()
+        
         const modeString = rollData.stats.mode.join(', ')
         // const modeString_averages = rollData.averages.mode.join(', ')
         rollData.stats.mode = modeString
