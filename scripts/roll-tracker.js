@@ -153,6 +153,7 @@ class RollTracker {
         COUNT_HIDDEN: 'count_hidden',
         STREAK_MESSAGE_HIDDEN: 'streak_message_hidden',
         STREAK_BEHAVIOUR: 'streak_behaviour',
+        STREAK_THRESHOLD: 'streak_threshold',
         DND5E: {
             RESTRICT_COUNTED_ROLLS: 'restrict_counted_rolls'
         },
@@ -215,18 +216,35 @@ class RollTracker {
             hint: `ROLL-TRACKER.settings.${this.SETTINGS.COUNT_HIDDEN}.Hint`,
         })
 
+        // Are streaks completely disabled, are they shown only to GMs, or are they shown to everyone
         game.settings.register(this.ID, this.SETTINGS.STREAK_BEHAVIOUR, {
             name: `ROLL-TRACKER.settings.${this.SETTINGS.STREAK_BEHAVIOUR}.Name`,
             default: true,
             type: String,
             scope: 'world',
             config: true,
-            // hint: `ROLL-TRACKER.settings.${this.SETTINGS.STREAK_BEHAVIOUR}.Hint`,
+            hint: `ROLL-TRACKER.settings.${this.SETTINGS.STREAK_BEHAVIOUR}.Hint`,
             choices: {
                 hidden: game.i18n.localize(`ROLL-TRACKER.settings.${this.SETTINGS.STREAK_BEHAVIOUR}.hidden`),
                 disable: game.i18n.localize(`ROLL-TRACKER.settings.${this.SETTINGS.STREAK_BEHAVIOUR}.disable`),
                 shown: game.i18n.localize(`ROLL-TRACKER.settings.${this.SETTINGS.STREAK_BEHAVIOUR}.shown`)
             }
+        })
+
+        // What is the threshold of consecutive rolls within 1 point of each other that should be considered
+        // a streak?
+        game.settings.register(this.ID, this.SETTINGS.STREAK_THRESHOLD, {
+            name: `ROLL-TRACKER.settings.${this.SETTINGS.STREAK_THRESHOLD}.Name`,
+            default: true,
+            type: Number,
+            range: {
+                min: 2,
+                max: 5,
+                step: 1
+            },
+            scope: 'world',
+            config: true,
+            hint: `ROLL-TRACKER.settings.${this.SETTINGS.STREAK_THRESHOLD}.Hint`
         })
 
         // System specific settings
@@ -379,7 +397,8 @@ class RollTrackerData {
                 if (prevRoll-1 <= currentRoll && currentRoll <= prevRoll+1) {
                     if (!streak.numbers.length) streak.numbers.push(prevRoll)
                     streak.numbers.push(currentRoll)
-                    if (streak.numbers.length >= 2) {
+                    const streakThreshold = game.settings.get(RollTracker.ID, RollTracker.SETTINGS.STREAK_THRESHOLD)
+                    if (streak.numbers.length >= streakThreshold) {
                         const streakString = streak.numbers.join(', ')
                         let chatOpts = {
                             content: `<strong>${user.name} is on a streak!</strong> </br> ${streakString}`, speaker: {alias: 'Roll Tracker'}

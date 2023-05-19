@@ -69,6 +69,10 @@
                 "hidden": "Whisper Streaks to GM",
                 "shown": "Publicly display Streaks"
             },
+            "streak_threshold": {
+                "Name" : "Streak Threshold",
+                "Hint" : "The number of consecutive rolls within 1 point of each other that should be counted as a streak."
+            },
             "dnd5e": {
                 "restrict_counted_rolls": {
                     "Name": "Don't Count Unlinked Rolls",
