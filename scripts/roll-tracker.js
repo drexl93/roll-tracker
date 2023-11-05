@@ -786,6 +786,20 @@ class RollTrackerDialog extends FormApplication {
         ChatMessage.create( { content } )
     }
 
+    async downloadAll() {
+        
+        for(const user of game.users) {
+             const data = RollTrackerData.getUserRolls(user.id)?.sorted;
+
+            if (data) {
+                saveDataToFile(data, 'string', user.name + '.txt')
+            } else {
+                return ui.notifications.warn("No roll data to export")
+            }
+        }
+          
+    }
+
     activateListeners(html) {
         super.activateListeners(html);
 
@@ -833,7 +847,7 @@ class RollTrackerDialog extends FormApplication {
             icon: "fas fa-download",
             onclick: ev => {
                 if (this.exportData) {
-                    saveDataToFile(this.exportData, 'string', 'roll-data.txt')
+                    saveDataToFile(this.exportData, 'string', game.user.name + '.txt')
                 } else {
                     return ui.notifications.warn("No roll data to export")
                 }
@@ -845,6 +859,15 @@ class RollTrackerDialog extends FormApplication {
                 icon: "fas fa-chart-simple",
                 onclick: ev => {
                     this.prepCompCard()
+                }
+            })
+        }
+        if (game.user.isGM) {
+            buttons.splice(2, 0, {
+                class: "roll-tracker-download-all",
+                icon: "fa fa-cloud-download",
+                onclick: ev => {
+                    this.downloadAll();
                 }
             })
         }
