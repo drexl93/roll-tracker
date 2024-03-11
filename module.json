@@ -9,7 +9,7 @@
   ],
     "version": "1.8.2",
     "minimumCoreVersion": "10.0.0",
-    "compatibleCoreVersion": "10.0.0",
+    "compatibleCoreVersion": "11.0.0",
     "scripts": [
         "scripts/roll-tracker.js"
     ],
@@ -31,6 +31,6 @@
   "id": "roll-tracker",
   "compatibility": {
     "minimum": "10.0.0",
-    "verified": "10.0.0"
+    "verified": "11.0.0"
   }
 }
