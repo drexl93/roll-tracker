@@ -787,17 +787,33 @@ class RollTrackerDialog extends FormApplication {
     }
 
     async downloadAll() {
-        
         for(const user of game.users) {
-             const data = RollTrackerData.getUserRolls(user.id)?.sorted;
 
-            if (data) {
-                saveDataToFile(data, 'string', user.name + '.txt')
-            } else {
-                return ui.notifications.warn("No roll data to export")
+            console.log("user:");
+            console.log(user);
+
+            const data = await RollTrackerData.getUserRolls(user.id)?.sorted;
+
+            console.log("data: " + data);
+
+            if (!data) {
+                console.log("Roll Tracker | No roll data to export for " + user.name);
+                continue; // Move to the next iteration of the loop
             }
+
+            let character = game.users.get(user.id)?.character;
+
+            if (character != undefined)
+            {
+                await saveDataToFile(data, 'string', character.name + '.txt');
+            }
+            else
+            {
+                await saveDataToFile(data, 'string', user.name + '.txt');
+            }
+    
+            
         }
-          
     }
 
     activateListeners(html) {
