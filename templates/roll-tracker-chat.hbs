@@ -2,6 +2,7 @@
 <form>
     <div class="roll-tracker-form flexcol" data-userId="{{thisUserId}}">
         <h1 class="roll-tracker-form-heading">{{username}}</h1>
+        {{#if (isCombatToggled state)}}<h2 class="roll-tracker-form-subheading"><i class="fas fa-swords"></i> {{localize "ROLL-TRACKER.form-label.combatstats"}} <i class="fas fa-swords"></i></h2>{{/if}}
        <ul class="roll-tracker-form flexcol">
             <li><span class="roll-tracker-form stat">{{localize "ROLL-TRACKER.form-label.mean"}}: </span>{{stats.mean}}</li>
             <li><span class="roll-tracker-form stat">{{localize "ROLL-TRACKER.form-label.median"}}: </span>{{stats.median}}</li>

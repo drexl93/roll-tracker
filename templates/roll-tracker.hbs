@@ -12,6 +12,8 @@
             {{#if stats.lastRoll}} <li><span class="roll-tracker-form stat">{{localize "ROLL-TRACKER.form-label.lastRoll"}}: </span>{{stats.lastRoll}}</li> {{/if}}
             <li><span class="roll-tracker-form stat">{{localize "ROLL-TRACKER.form-label.count"}}: </span>{{stats.count}}</li>
         </ul>
+        <button type="button" class="roll-tracker-form-button-toggle" data-action="toggle"><i class="fas fa-swords"></i>
+        {{#if (isCombatToggled state)}}{{localize "ROLL-TRACKER.form-button.toggle-all"}}{{else}}{{localize "ROLL-TRACKER.form-button.toggle-combat"}}{{/if}}</button>
         <button type="button" class="roll-tracker-form-button-delete" data-action="clear"><i class="fas fa-times"></i>{{localize "ROLL-TRACKER.form-button.clear"}}</button>
         <button type="button" class="roll-tracker-form-button-print" data-action="print"><i class="fas fa-eye"></i>{{localize "ROLL-TRACKER.form-button.print"}}</button>
 

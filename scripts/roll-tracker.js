@@ -117,6 +117,12 @@ Handlebars.registerHelper('isSecondLast', function (index, length) {
     if (length - index === 2) return true
 });
 
+// To check if the Combat checkbox is checked in the Roll Tracker Dialog
+Handlebars.registerHelper('isCombatToggled', function (value) {
+    if (value === 'sorted') return false
+    else if (value === 'combat') return true
+});
+
 
 // Store basic module info
 class RollTracker { 
@@ -127,6 +133,7 @@ class RollTracker {
         EXPORT: 'export',
         UNSORTED: 'unsorted',
         STREAK: 'streak',
+        COMBAT: 'combat'
     }
 
     static TEMPLATES = {
@@ -349,6 +356,7 @@ class RollTrackerData {
             unsorted: game.users.get(userId)?.getFlag(RollTracker.ID, RollTracker.FLAGS.UNSORTED),
             export: game.users.get(userId)?.getFlag(RollTracker.ID, RollTracker.FLAGS.EXPORT),
             streak: game.users.get(userId)?.getFlag(RollTracker.ID, RollTracker.FLAGS.STREAK),
+            combat: game.users.get(userId)?.getFlag(RollTracker.ID, RollTracker.FLAGS.COMBAT)
         } 
         return output
     }
@@ -360,8 +368,10 @@ class RollTrackerData {
         // of other users, so errors are thrown. This way the only foundry instance that creates the tracked
         // roll is the foundry instance of the user actually making the roll
             let updatedRolls = []
+            let updatedCombatRolls = []
             const newNumbers = rollData.dice[0].results.map(result => result.result) // In case there's more than one d20 roll in a single instance as in fortune/misfortune rolls
             let oldSorted = this.getUserRolls(user.id)?.sorted || []
+            let oldCombatSorted = this.getUserRolls(user.id)?.combat || []
             let oldUnsorted = this.getUserRolls(user.id)?.unsorted || []
             const limit = game.settings.get(RollTracker.ID, RollTracker.SETTINGS.ROLL_STORAGE)
             if (oldUnsorted.length >= limit) {
@@ -375,6 +385,15 @@ class RollTrackerData {
                 }    
             }
             if (oldSorted.length) {
+                if (game.combat) {
+                    if (oldCombatSorted.length) {
+                        updatedCombatRolls = [...oldCombatSorted]
+                    }
+                    newNumbers.forEach(e => {
+                        updatedCombatRolls.unshift(e)
+                        updatedCombatRolls = this.sortRolls(updatedCombatRolls)
+                    })
+                }
                 updatedRolls = [...oldSorted]
                 newNumbers.forEach(e => {
                     updatedRolls.unshift(e)
@@ -437,14 +456,26 @@ class RollTrackerData {
                     }
                 }
                 game.users.get(user.id)?.setFlag(RollTracker.ID, RollTracker.FLAGS.STREAK, streak)
+                // end of streak calculations
+
             } else {
+                if (game.combat) updatedCombatRolls = newNumbers
                 updatedRolls = newNumbers
                 oldUnsorted = newNumbers
             }
-            return Promise.all([
-                game.users.get(user.id)?.setFlag(RollTracker.ID, RollTracker.FLAGS.SORTED, updatedRolls),
-                game.users.get(user.id)?.setFlag(RollTracker.ID, RollTracker.FLAGS.UNSORTED, oldUnsorted)
-            ])
+            
+            if (game.combat) {
+                return Promise.all([
+                    game.users.get(user.id)?.setFlag(RollTracker.ID, RollTracker.FLAGS.SORTED, updatedRolls),
+                    game.users.get(user.id)?.setFlag(RollTracker.ID, RollTracker.FLAGS.UNSORTED, oldUnsorted),
+                    game.users.get(user.id)?.setFlag(RollTracker.ID, RollTracker.FLAGS.COMBAT, updatedCombatRolls)
+                ])
+            } else {
+                return Promise.all([
+                    game.users.get(user.id)?.setFlag(RollTracker.ID, RollTracker.FLAGS.SORTED, updatedRolls),
+                    game.users.get(user.id)?.setFlag(RollTracker.ID, RollTracker.FLAGS.UNSORTED, oldUnsorted),
+                ])
+            }
         }
     }
 
@@ -455,6 +486,7 @@ class RollTrackerData {
             game.users.get(userId)?.unsetFlag(RollTracker.ID, RollTracker.FLAGS.EXPORT),
             game.users.get(userId)?.unsetFlag(RollTracker.ID, RollTracker.FLAGS.UNSORTED),
             game.users.get(userId)?.unsetFlag(RollTracker.ID, RollTracker.FLAGS.STREAK),
+            game.users.get(userId)?.unsetFlag(RollTracker.ID, RollTracker.FLAGS.COMBAT)
         ])
     }
 
@@ -463,12 +495,17 @@ class RollTrackerData {
         return rolls.sort((a, b) => a - b)
     }
 
-    static async prepTrackedRolls(userId) { 
+    static async prepTrackedRolls(userId, state) { 
     // Package data for access via the FormApplication
 
         const username = this.getUserRolls(userId).user.name
         const thisUserId = this.getUserRolls(userId).user.id
-        const printRolls = this.getUserRolls(userId).sorted
+        let printRolls
+        if (state === 'sorted') {
+            printRolls = this.getUserRolls(userId).sorted
+        } else if (state === 'combat') {
+            printRolls = this.getUserRolls(userId).combat
+        }
 
         let stats = {}
 
@@ -488,7 +525,7 @@ class RollTrackerData {
             // stats.lastRoll = this.getUserRolls(userId)?.unsorted.at(-1)
         }
         
-        return { username, thisUserId, stats 
+        return { username, thisUserId, stats, state 
             /**, averages */ }
     }
 
@@ -599,11 +636,12 @@ class RollTrackerData {
      * **/
     
 
-    static async generalComparison() {
+    static async generalComparison(state) {
         let allStats = {}
+        const capsState = state.toUpperCase()
         for (let user of game.users) {
-            if (game.users.get(user.id)?.getFlag(RollTracker.ID, RollTracker.FLAGS.SORTED)) {
-                const rolls = this.getUserRolls(user.id)?.sorted
+            if (game.users.get(user.id)?.getFlag(RollTracker.ID, RollTracker.FLAGS[capsState])) {
+                const rolls = this.getUserRolls(user.id)?.[state]
                 allStats[`${user.id}`] = await this.calculate(rolls)
             }
         }
@@ -616,7 +654,7 @@ class RollTrackerData {
             const nat1sPercentage = await this.statsCompare(allStats, 'nat1sPercentage')
             const nat20s = await this.statsCompare(allStats, 'nat20s')
             const nat20sPercentage = await this.statsCompare(allStats, 'nat20sPercentage')
-            let finalComparison = {}
+            let finalComparison = {state: state}
             this.prepStats(finalComparison, 'mean', means, allStats)
             this.prepStats(finalComparison, 'median', medians, allStats)
             this.prepStats(finalComparison, 'nat1s', nat1s, allStats)
@@ -759,13 +797,16 @@ class RollTrackerDialog extends FormApplication {
             id: 'roll-tracker',
             template: RollTracker.TEMPLATES.ROLLTRACK,
             title: 'Roll Tracker',
+            state: 'sorted'
         }
         const mergedOptions = foundry.utils.mergeObject(defaults, overrides);
         return mergedOptions
     }
 
-    async getData() {
-        const rollData = await RollTrackerData.prepTrackedRolls(this.object)
+    async getData(options) {
+        const state = options.state
+        console.log(state)
+        const rollData = await RollTrackerData.prepTrackedRolls(this.object, state)
 
         // The lines below convert the mode array returned from prepTrackedRolls into a prettier 
         // string for display purposes. We choose to do the conversion to string here so that the
@@ -780,8 +821,8 @@ class RollTrackerDialog extends FormApplication {
         return rollData
     }
 
-    async prepCompCard() {
-        let comparison = await RollTrackerData.generalComparison()
+    async prepCompCard(state) {
+        let comparison = await RollTrackerData.generalComparison(state)
         let content = await renderTemplate(RollTracker.TEMPLATES.COMPARISONCARD, comparison)
         ChatMessage.create( { content } )
     }
@@ -811,12 +852,27 @@ class RollTrackerDialog extends FormApplication {
                 }
                 break
             } case 'print': {
-                const rollData = await RollTrackerData.prepTrackedRolls(this.object)
+                const rollData = await RollTrackerData.prepTrackedRolls(this.object, this.options.state)
                 const modeString = rollData.stats.mode.join(', ')
                 rollData.stats.mode = modeString
 
                 const content = await renderTemplate(RollTracker.TEMPLATES.CHATMSG, rollData)
                 ChatMessage.create( { content } )
+                break
+            } 
+            case 'toggle': {
+                if (this.options.state === 'sorted') {
+                    this.render(false, {state: 'combat'})
+                } else {
+                    this.render(false, {state: 'sorted'})
+                }
+                // const rollData = await RollTrackerData.prepTrackedRolls(this.object, 'combat')
+                // const modeString = rollData.stats.mode.join(', ')
+                // rollData.stats.mode = modeString
+
+                // const content = await renderTemplate(RollTracker.TEMPLATES.CHATMSG, rollData)
+                // ChatMessage.create( { content } )
+                break
             }
         }
     }
@@ -844,7 +900,7 @@ class RollTrackerDialog extends FormApplication {
                 class: "roll-tracker-form-comparison",
                 icon: "fas fa-chart-simple",
                 onclick: ev => {
-                    this.prepCompCard()
+                    this.prepCompCard(this.options.state)
                 }
             })
         }

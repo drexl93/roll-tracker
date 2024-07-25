@@ -2,7 +2,7 @@
 <form>
     <div>
         {{!-- MEAN --}}
-        <h1 class="roll-tracker-comparison-card-heading">{{localize "ROLL-TRACKER.comparison-card.title"}}</h1>
+        <h1 class="roll-tracker-comparison-card-heading">{{#if (isCombatToggled state)}}<i class="fas fa-swords"></i> {{localize "ROLL-TRACKER.comparison-card.combat-title"}} <i class="fas fa-swords"></i>{{else}}{{localize "ROLL-TRACKER.comparison-card.title"}}{{/if}}</h1>
         <h3 class="roll-tracker-comparison-card-stat-heading">{{localize "ROLL-TRACKER.comparison-card.headers.mean"}}</h3>
         <ul class="roll-tracker-comparison-card-ul">
             <li class="roll-tracker-comparison-card-li">

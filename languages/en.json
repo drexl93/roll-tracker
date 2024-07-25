@@ -11,15 +11,19 @@
             "count": "Rolls Counted",
             "instance": "instance",
             "instances": "instances",
-            "each": "each"
+            "each": "each",
+            "combatstats": "Combat Stats"
         },
         "form-button": {
             "clear": "Clear Data",
+            "toggle-combat": "Show Only Combat Stats",
+            "toggle-all": "Show All Stats",
             "download": "Download",
             "print": "Print to Chat"
         },
         "comparison-card": {
             "title": "Comparison Card",
+            "combat-title": "Combat Comparison Card",
             "headers": {
                 "mean": "Mean",
                 "median": "Median",

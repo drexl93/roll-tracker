@@ -23,6 +23,12 @@
     margin: 0 0 0.4rem
 }
 
+.roll-tracker-form-subheading {
+    align-self: center;
+    font-size: large;
+    margin: 0
+}
+
 .roll-tracker-comparison-card-heading {
     font-size: large;
     font-weight: bold;
@@ -30,7 +36,6 @@
 }
 
 .roll-tracker-comparison-card-stat-heading {
-    text-decoration: underline;
     margin: 0.2em;
     font-size: 1.15em;
 }
