@@ -20,4 +20,4 @@ Streaks, defined as a series of rolls within +/- 1 number of each other, are tra
 Module settings allow the GM to determine how many rolls are stored per player, who has access to the Roll Tracker, and options for modifying streak behaviour.
 
 ## Latest Changelog
-* Feature added for comparison across players
+* Feature added to only display stats for rolls made while a combat encounter was running. This is not retroactive, so combat-linked rolls will only begin to be separately tracked now.
