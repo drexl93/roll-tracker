@@ -20,52 +20,71 @@ Hooks.on('createChatMessage', (chatMessage) => {
 })
 
 // This adds our icon to the player list
-Hooks.on('renderPlayerList', (playerList, html) => {
+// this is no longer working in v13+
+// Hooks.on('renderPlayerList', (playerList, html) => {
 
-    if (game.user.isGM) {
-        if (game.settings.get(RollTracker.ID, RollTracker.SETTINGS.GM_SEE_PLAYERS)) {
-            // This adds our icon to ALL players on the player list, if the setting is toggled
-            // tooltip
-                const tooltip = game.i18n.localize('ROLL-TRACKER.button-title')
-            // create the button where we want it to be
-                for (let user of game.users) {
-                    const buttonPlacement = html.find(`[data-user-id="${user.id}"]`)
-                    buttonPlacement.append(
-                        `<button type="button" title='${tooltip}' class="roll-tracker-item-button flex0" id="${user.id}"><i class="fas fa-dice-d20"></i></button>`
-                    )
-                    html.on('click', `#${user.id}`, (event) => {
-                        new RollTrackerDialog(user.id).render(true);
-                    })
-                }
-            }
-        else {
-            // Put the roll tracker icon only beside the GM's name
-            const loggedInUser = html.find(`[data-user-id="${game.userId}"]`)
+//     if (game.user.isGM) {
+//         if (game.settings.get(RollTracker.ID, RollTracker.SETTINGS.GM_SEE_PLAYERS)) {
+//             // This adds our icon to ALL players on the player list, if the setting is toggled
+//             // tooltip
+//                 const tooltip = game.i18n.localize('ROLL-TRACKER.button-title')
+//             // create the button where we want it to be
+//                 for (let user of game.users) {
+//                     const buttonPlacement = html.find(`[data-user-id="${user.id}"]`)
+//                     buttonPlacement.append(
+//                         `<button type="button" title='${tooltip}' class="roll-tracker-item-button flex0" id="${user.id}"><i class="fas fa-dice-d20"></i></button>`
+//                     )
+//                     html.on('click', `#${user.id}`, (event) => {
+//                         new RollTrackerDialog(user.id).render(true);
+//                     })
+//                 }
+//             }
+//         else {
+//             // Put the roll tracker icon only beside the GM's name
+//             const loggedInUser = html.find(`[data-user-id="${game.userId}"]`)
 
-            const tooltip = game.i18n.localize('ROLL-TRACKER.button-title')
+//             const tooltip = game.i18n.localize('ROLL-TRACKER.button-title')
 
-            loggedInUser.append(
-                `<button type="button" title='${tooltip}' class="roll-tracker-item-button flex0" id="${game.userId}"><i class="fas fa-dice-d20"></i></button>`
-            )
-            html.on('click', `#${game.userId}`, (event) => {
-                new RollTrackerDialog(game.userId).render(true);
-            })
-        }
-    }
-     else if (game.settings.get(RollTracker.ID, RollTracker.SETTINGS.PLAYERS_SEE_PLAYERS)) {
-    // find the element which has our logged in user's id
-        const loggedInUser = html.find(`[data-user-id="${game.userId}"]`)
+//             loggedInUser.append(
+//                 `<button type="button" title='${tooltip}' class="roll-tracker-item-button flex0" id="${game.userId}"><i class="fas fa-dice-d20"></i></button>`
+//             )
+//             html.on('click', `#${game.userId}`, (event) => {
+//                 new RollTrackerDialog(game.userId).render(true);
+//             })
+//         }
+//     }
+//      else if (game.settings.get(RollTracker.ID, RollTracker.SETTINGS.PLAYERS_SEE_PLAYERS)) {
+//     // find the element which has our logged in user's id
+//         const loggedInUser = html.find(`[data-user-id="${game.userId}"]`)
 
-        const tooltip = game.i18n.localize('ROLL-TRACKER.button-title')
+//         const tooltip = game.i18n.localize('ROLL-TRACKER.button-title')
 
-        loggedInUser.append(
-            `<button type="button" title='${tooltip}' class="roll-tracker-item-button flex0" id="${game.userId}"><i class="fas fa-dice-d20"></i></button>`
-        )
-        html.on('click', `#${game.userId}`, (event) => {
-            new RollTrackerDialog(game.userId).render(true);
-        })
-    }
-})
+//         loggedInUser.append(
+//             `<button type="button" title='${tooltip}' class="roll-tracker-item-button flex0" id="${game.userId}"><i class="fas fa-dice-d20"></i></button>`
+//         )
+//         html.on('click', `#${game.userId}`, (event) => {
+//             new RollTrackerDialog(game.userId).render(true);
+//         })
+//     }
+// })
+
+// v13+: fire when the Players UI (player list) renders
+Hooks.on('renderPlayers', (app, element /* HTMLElement */, context, options) => {
+  // Helper to avoid duplicate buttons
+  const ensureButton = (userId, tooltip) => {
+    const row = element.querySelector(`[data-user-id="${userId}"]`);
+    if (!row) return;
+    if (row.querySelector(`.roll-tracker-item-button[data-uid="${userId}"]`)) return;
+
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.title = tooltip;
+    btn.className = 'roll-tracker-item-button flex0';
+    btn.dataset.uid = userId;
+    btn.innerHTML = `<i class="fas fa-dice-d20"></i>`;
+    btn.addEventListener('click', () => new RollTrackerDialog(userId).render(true));
+    row.append(btn);
+  };
 
 // Register our module with the Dev Mode module, for logging purposes
 Hooks.once('devModeReady', ({ registerPackageDebugFlag }) => {
