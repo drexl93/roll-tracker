@@ -7,9 +7,9 @@
       "flags": {}
     }
   ],
-    "version": "1.9.0",
-    "minimumCoreVersion": "10.0.0",
-    "compatibleCoreVersion": "12.0.0",
+    "version": "2.0.0",
+    "minimumCoreVersion": "13.0.0",
+    "compatibleCoreVersion": "13.0.0",
     "scripts": [
         "scripts/roll-tracker.js"
     ],
@@ -30,7 +30,7 @@
   "download": "https://github.com/drexl93/roll-tracker/raw/main/roll-tracker.zip",
   "id": "roll-tracker",
   "compatibility": {
-    "minimum": "10.0.0",
-    "verified": "12.0.0"
+    "minimum": "13.0.0",
+    "verified": "13.0.0"
   }
 }
